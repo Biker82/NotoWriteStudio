@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="de" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotoWrite Studio – Textverarbeitung & Code-Editor</title>
+    
+    <!-- Google Fonts: Noto Sans & Noto Sans Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;500;600&family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans"', 'sans-serif'],
+                        mono: ['"Noto Sans Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Highlight.js für Syntax-Highlighting (Atom One Dark Theme) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Marked.js (Markdown -> HTML) & Turndown.js (HTML -> Markdown) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+
+    <style>
+        /* Grundlegende Schriftart-Regeln */
+        body {
+            font-family: 'Noto Sans', sans-serif;
+        }
+
+        /* Styling für den visuellen Dokumenten-Editor (Rich Text) */
+        #visual-editor {
+            font-family: 'Noto Sans', sans-serif;
+            outline: none;
+            line-height: 1.75;
+            font-size: 1.05rem;
+            color: #1e293b;
+            min-height: 650px;
+        }
+
+        .dark #visual-editor {
+            color: #e2e8f0;
+        }
+
+        /* Formatierungsvorlagen im Editor */
+        #visual-editor p {
+            margin-bottom: 1rem;
+            font-weight: 400;
+        }
+
+        #visual-editor h1 {
+            font-size: 2.15rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 2px solid #e2e8f0;
+            color: #0f172a;
+        }
+        .dark #visual-editor h1 {
+            border-bottom-color: #334155;
+            color: #f8fafc;
+        }
+
+        #visual-editor h2 {
+            font-size: 1.65rem;
+            font-weight: 600;
+            line-height: 1.35;
+            margin-top: 1.4rem;
+            margin-bottom: 0.75rem;
+            color: #1e293b;
+        }
+        .dark #visual-editor h2 {
+            color: #f1f5f9;
+        }
+
+        #visual-editor h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: #334155;
+        }
+        .dark #visual-editor h3 {
+            color: #cbd5e1;
+        }
+
+        #visual-editor ul {
+            list-style-type: disc;
+            padding-left: 1.75rem;
+            margin-bottom: 1.1rem;
+        }
+
+        #visual-editor ol {
+            list-style-type: decimal;
+            padding-left: 1.75rem;
+            margin-bottom: 1.1rem;
+        }
+
+        #visual-editor li {
+            margin-bottom: 0.35rem;
+        }
+
+        /* Programmier-Code-Blöcke im Editor */
+        #visual-editor pre {
+            position: relative;
+            background-color: #282c34;
+            color: #abb2bf;
+            font-family: 'Noto Sans Mono', monospace;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            padding: 2.2rem 1.25rem 1.1rem 1.25rem;
+            border-radius: 0.65rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #3e4451;
+        }
+
+        /* Sprach-Badge oben rechts in jedem Code-Block */
+        #visual-editor pre::before {
+            content: attr(data-lang);
+            position: absolute;
+            top: 0.45rem;
+            right: 0.75rem;
+            font-family: 'Noto Sans', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9da5b4;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.15rem 0.55rem;
+            border-radius: 0.35rem;
+            pointer-events: none;
+        }
+
+        #visual-editor pre::after {
+            content: "● ● ●";
+            position: absolute;
+            top: 0.45rem;
+            left: 0.9rem;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            color: #5c6370;
+            pointer-events: none;
+        }
+
+        #visual-editor pre code {
+            font-family: 'Noto Sans Mono', monospace;
+            background: transparent !important;
+            padding: 0 !important;
+            color: inherit;
+            font-size: inherit;
+            display: block;
+            white-space: pre;
+        }
+
+        /* Inline-Code */
+        #visual-editor :not(pre) > code {
+            font-family: 'Noto Sans Mono', monospace;
+            background-color: #f1f5f9;
+            color: #e11d48;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.35rem;
+            font-size: 0.9em;
+            border: 1px solid #e2e8f0;
+        }
+        .dark #visual-editor :not(pre) > code {
+            background-color: #1e293b;
+            color: #fb7185;
+            border-color: #334155;
+        }
+
+        /* Aktive Formatierungs-Buttons */
+        .format-btn.active {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        /* Eigene Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 h-screen flex flex-col overflow-hidden select-none transition-colors duration-200">
+
+    <!-- Versteckter Datei-Input für .txt und .md -->
+    <input type="file" id="file-input" accept=".txt,.md,.markdown,text/plain,text/markdown" class="hidden">
+
+    <!-- Drag & Drop Overlay -->
+    <div id="drop-overlay" class="fixed inset-0 bg-blue-600/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center text-white p-6">
+        <div class="border-4 border-dashed border-white rounded-3xl p-12 flex flex-col items-center max-w-lg text-center">
+            <svg class="w-20 h-20 mb-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <h2 class="text-2xl font-bold mb-2">Datei hier ablegen</h2>
+            <p class="text-blue-100">Unterstützte Formate: <strong>.TXT</strong> und <strong>.MD</strong> (Markdown)</p>
+        </div>
+    </div>
+
+    <!-- TOP HEADER: App-Titel, Dateiname & Datei-Operationen -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0 z-20">
+        <!-- Logo & Dateiname -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="doc-filename" value="Dokument" 
+                        class="font-semibold text-base bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-blue-500 focus:bg-slate-50 dark:focus:bg-slate-800 rounded-lg px-2 py-0.5 outline-none transition w-44 sm:w-56"
+                        title="Dateiname bearbeiten">
+                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">Noto Sans</span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 pl-2">Textverarbeitung & Code-Highlighting</p>
+            </div>
+        </div>
+
+        <!-- Datei-Aktionen: Neu, Öffnen, Speichern (.MD / .TXT) & Ansichtsmodus -->
+        <div class="flex items-center flex-wrap gap-2">
+            <!-- Neues Dokument -->
+            <button id="btn-new" class="px-3 py-1.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition" title="Leeres Dokument erstellen">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span class="hidden sm:inline">Neu</span>
+            </button>
+
+            <!-- Öffnen (.txt / .md) -->
+            <button id="btn-open" class="px-3 py-1.5 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition shadow-sm" title=".txt oder .md Datei öffnen">
+                <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>Öffnen (.txt / .md)</span>
+            </button>
+
+            <!-- Speichern als .MD -->
+            <button id="btn-save-md" class="px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 transition shadow-sm" title="Als Markdown-Datei (.md) speichern">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span>Speichern .MD</span>
+            </button>
+
+            <!-- Speichern als .TXT -->
+            <button id="btn-save-txt" class="px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1.5 transition shadow-sm" title="Als Textdatei (.txt) speichern">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+                <span>Speichern .TXT</span>
+            </button>
+
+            <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden md:block"></div>
+
+            <!-- Ansichts-Umschalter (Visuell | Split | Markdown) -->
+            <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center text-xs font-medium border border-slate-200 dark:border-slate-700">
+                <button data-view="visual" class="view-btn px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm transition">Editor</button>
+                <button data-view="split" class="view-btn px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition hidden sm:inline-block">Split</button>
+                <button data-view="markdown" class="view-btn px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">Markdown / Roh</button>
+            </div>
+
+            <!-- Dark Mode Umschalter -->
+            <button id="btn-theme" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition" title="Hell-/Dunkelmodus umschalten">
+                <svg id="icon-sun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <svg id="icon-moon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- FORMATIERUNGSVORLAGEN-TOOLBAR -->
+    <div class="bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 py-2 flex flex-wrap items-center gap-2 shrink-0 z-10 shadow-sm">
+        
+        <!-- Gruppe 1: Die 5 Haupt-Formatierungsvorlagen -->
+        <div class="flex items-center flex-wrap gap-1.5">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1 hidden xl:inline">Formatvorlagen:</span>
+            
+            <!-- 1. Standard -->
+            <button id="tpl-p" data-format="P" class="format-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm" title="Standard-Absatz (Noto Sans)">
+                <span class="text-xs font-bold text-slate-400">¶</span>
+                <span>Standard</span>
+            </button>
+
+            <!-- 2. Überschrift 1 -->
+            <button id="tpl-h1" data-format="H1" class="format-btn px-3 py-1.5 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-sm" title="Große Hauptüberschrift (H1)">
+                Überschrift 1
+            </button>
+
+            <!-- 3. Überschrift 2 -->
+            <button id="tpl-h2" data-format="H2" class="format-btn px-3 py-1.5 text-sm font-semibold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-sm" title="Abschnittsüberschrift (H2)">
+                Überschrift 2
+            </button>
+
+            <!-- 4. Überschrift 3 -->
+            <button id="tpl-h3" data-format="H3" class="format-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-sm" title="Unterüberschrift (H3)">
+                Überschrift 3
+            </button>
+
+            <!-- 5. Ungeordnete Liste -->
+            <button id="tpl-ul" data-format="UL" class="format-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm" title="Ungeordnete Aufzählungsliste">
+                <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+                <span>Ungeordnete Liste</span>
+            </button>
+        </div>
+
+        <div class="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+
+        <!-- Gruppe 2: Basis-Textauszeichnung (Fett, Kursiv) -->
+        <div class="flex items-center gap-1">
+            <button id="btn-bold" class="p-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-sm w-8 h-8 flex items-center justify-center shadow-sm" title="Fett (Strg+B)">B</button>
+            <button id="btn-italic" class="p-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 italic font-serif text-sm w-8 h-8 flex items-center justify-center shadow-sm" title="Kursiv (Strg+I)">I</button>
+        </div>
+
+        <div class="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+
+        <!-- Gruppe 3: Programmier-Code Werkzeuge & Syntax-Erkennung -->
+        <div class="flex items-center flex-wrap gap-1.5">
+            <!-- Sprachauswahl für Code-Blöcke -->
+            <select id="code-lang-select" class="text-xs font-medium rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-2.5 py-1.5 outline-none focus:border-blue-500 shadow-sm" title="Programmiersprache (oder Auto-Erkennung)">
+                <option value="auto">✨ Sprache: Auto-Erkennung</option>
+                <option value="javascript">JavaScript / TypeScript</option>
+                <option value="python">Python</option>
+                <option value="html">HTML / XML</option>
+                <option value="css">CSS</option>
+                <option value="java">Java</option>
+                <option value="csharp">C#</option>
+                <option value="cpp">C / C++</option>
+                <option value="sql">SQL</option>
+                <option value="json">JSON</option>
+                <option value="bash">Bash / Shell</option>
+                <option value="php">PHP</option>
+            </select>
+
+            <!-- Code-Block einfügen / umwandeln -->
+            <button id="btn-insert-code" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 transition flex items-center gap-1.5 shadow-sm" title="Markierten Text als Code-Block formatieren oder Code-Editor öffnen">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                </svg>
+                <span>Code-Block</span>
+            </button>
+
+            <!-- Automatische Code-Erkennung & Highlighting jetzt ausführen -->
+            <button id="btn-detect-code" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/70 transition flex items-center gap-1.5 shadow-sm" title="Erkennt Programmiercode und Markdown-Blöcke im Text und färbt sie automatisch ein">
+                <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                <span>Code erkennen & färben</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- HAUPT-ARBEITSBEREICH (Editor & Optionales Markdown-Panel) -->
+    <main class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Linke/Haupt-Spalte: Visueller Rich-Text-Editor (Papier-Look) -->
+        <div id="visual-pane" class="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-100 dark:bg-slate-950">
+            <div class="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-md border border-slate-200/90 dark:border-slate-800 p-6 sm:p-12 h-fit min-h-full select-text">
+                <!-- Editierbarer Bereich -->
+                <div id="visual-editor" contenteditable="true" spellcheck="true" aria-label="Textverarbeitungs-Editor"></div>
+            </div>
+        </div>
+
+        <!-- Rechte Spalte: Markdown / Rohdaten-Ansicht (im Split- oder Markdown-Modus sichtbar) -->
+        <div id="markdown-pane" class="hidden flex-1 flex-col border-l border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 overflow-hidden">
+            <div class="bg-slate-800/90 px-4 py-2 text-xs font-mono text-slate-300 flex items-center justify-between border-b border-slate-700">
+                <span>MARKDOWN / ROHDATEN-ANSICHT (LIVE-SYNC)</span>
+                <span class="text-emerald-400">Noto Sans Mono</span>
+            </div>
+            <textarea id="markdown-editor" spellcheck="false" 
+                class="flex-1 w-full bg-slate-900 text-slate-100 font-mono text-sm p-6 outline-none resize-none leading-relaxed select-text"
+                placeholder="# Überschrift 1&#10;&#10;Schreibe hier Markdown oder Programmier-Code mit ``` ..."></textarea>
+        </div>
+
+    </main>
+
+    <!-- MODAL: Code-Snippet komfortabel einfügen -->
+    <div id="code-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                    <h3 class="font-bold text-lg">Programmier-Code einfügen & hervorheben</h3>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <label class="text-sm font-medium text-slate-600 dark:text-slate-300">Programmiersprache:</label>
+                    <select id="modal-lang-select" class="text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-1.5 outline-none">
+                        <option value="auto">✨ Automatisch erkennen (Auto-Detect)</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="html">HTML / XML</option>
+                        <option value="css">CSS</option>
+                        <option value="java">Java</option>
+                        <option value="csharp">C#</option>
+                        <option value="cpp">C / C++</option>
+                        <option value="sql">SQL</option>
+                        <option value="json">JSON</option>
+                        <option value="bash">Bash / Terminal</option>
+                    </select>
+                </div>
+                <textarea id="modal-code-input" rows="9" 
+                    class="w-full rounded-xl bg-slate-950 text-emerald-300 font-mono text-sm p-4 border border-slate-700 outline-none focus:border-blue-500"
+                    placeholder="// Füge hier deinen Programmier-Code ein...&#10;function halloWelt() {&#10;    console.log('Code wird automatisch farblich dargestellt!');&#10;}"></textarea>
+            </div>
+            <div class="px-6 py-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+                <button id="btn-cancel-modal" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Abbrechen</button>
+                <button id="btn-confirm-code" class="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition">Farbig einfügen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST BENACHRICHTIGUNG -->
+    <div id="toast" class="fixed bottom-12 right-6 z-50 transform translate-y-16 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-3 text-sm">
+        <span id="toast-icon" class="text-emerald-400 font-bold">✓</span>
+        <span id="toast-msg">Aktion ausgeführt</span>
+    </div>
+
+    <!-- STATUSLEISTE UNTEN -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2 shrink-0 z-20">
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <strong id="status-block" class="text-slate-700 dark:text-slate-200">Vorlage: Standard</strong>
+            </span>
+            <span class="hidden sm:inline">|</span>
+            <span id="status-code-count" class="hidden sm:inline">Erkannte Code-Blöcke: 0</span>
+        </div>
+        <div class="flex items-center gap-4 font-mono">
+            <span id="stat-words">0 Wörter</span>
+            <span>•</span>
+            <span id="stat-chars">0 Zeichen</span>
+            <span>•</span>
+            <span id="stat-lines">0 Zeilen</span>
+        </div>
+    </footer>
+
+    <!-- HAUPTSKRIPT DER ANWENDUNG -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM-Referenzen
+            const visualEditor = document.getElementById('visual-editor');
+            const markdownEditor = document.getElementById('markdown-editor');
+            const visualPane = document.getElementById('visual-pane');
+            const markdownPane = document.getElementById('markdown-pane');
+            const docFilename = document.getElementById('doc-filename');
+            const fileInput = document.getElementById('file-input');
+            const dropOverlay = document.getElementById('drop-overlay');
+
+            // Formatvorlagen-Buttons
+            const btnTplP = document.getElementById('tpl-p');
+            const btnTplH1 = document.getElementById('tpl-h1');
+            const btnTplH2 = document.getElementById('tpl-h2');
+            const btnTplH3 = document.getElementById('tpl-h3');
+            const btnTplUl = document.getElementById('tpl-ul');
+            const formatButtons = [btnTplP, btnTplH1, btnTplH2, btnTplH3, btnTplUl];
+
+            // Weitere Toolbar-Elemente
+            const btnBold = document.getElementById('btn-bold');
+            const btnItalic = document.getElementById('btn-italic');
+            const codeLangSelect = document.getElementById('code-lang-select');
+            const btnInsertCode = document.getElementById('btn-insert-code');
+            const btnDetectCode = document.getElementById('btn-detect-code');
+
+            // Statusleiste
+            const statusBlock = document.getElementById('status-block');
+            const statusCodeCount = document.getElementById('status-code-count');
+            const statWords = document.getElementById('stat-words');
+            const statChars = document.getElementById('stat-chars');
+            const statLines = document.getElementById('stat-lines');
+
+            // Modal-Elemente
+            const codeModal = document.getElementById('code-modal');
+            const modalLangSelect = document.getElementById('modal-lang-select');
+            const modalCodeInput = document.getElementById('modal-code-input');
+            const btnCloseModal = document.getElementById('btn-close-modal');
+            const btnCancelModal = document.getElementById('btn-cancel-modal');
+            const btnConfirmCode = document.getElementById('btn-confirm-code');
+
+            let savedSelectionRange = null;
+            let isSyncing = false;
+
+            // =========================================================================
+            // 1. TURNDOWN (HTML -> MARKDOWN) & MARKED (MARKDOWN -> HTML) KONFIGURATION
+            // =========================================================================
+            const turndownService = new TurndownService({
+                headingStyle: 'atx',
+                bulletListMarker: '-',
+                codeBlockStyle: 'fenced'
+            });
+
+            // Spezielle Regel für hervorgehobene Code-Blöcke (<pre><code class="language-xyz">)
+            turndownService.addRule('highlightedCodeBlock', {
+                filter: function (node) {
+                    return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
+                },
+                replacement: function (content, node) {
+                    const codeNode = node.firstChild;
+                    const langAttr = node.getAttribute('data-lang') || '';
+                    const classMatch = (codeNode.className || '').match(/language-(\S+)/);
+                    let lang = classMatch ? classMatch[1] : langAttr.toLowerCase();
+                    if (lang === 'auto' || lang === 'code' || lang === 'text') lang = '';
+                    const rawCode = codeNode.textContent.replace(/\n$/, '');
+                    return '\n\n```' + lang + '\n' + rawCode + '\n```\n\n';
+                }
+            });
+
+            marked.setOptions({
+                gfm: true,
+                breaks: true
+            });
+
+            // =========================================================================
+            // 2. SYNTAX-HIGHLIGHTING & AUTOMATISCHE CODE-ERKENNUNG
+            // =========================================================================
+            function highlightAllCodeBlocks(forceAutoDetect = false) {
+                const preBlocks = visualEditor.querySelectorAll('pre');
+                
+                preBlocks.forEach(pre => {
+                    let codeEl = pre.querySelector('code');
+                    if (!codeEl) {
+                        codeEl = document.createElement('code');
+                        codeEl.textContent = pre.textContent;
+                        pre.innerHTML = '';
+                        pre.appendChild(codeEl);
+                    }
+
+                    const rawCode = codeEl.textContent;
+                    // Prüfen, ob bereits eine Sprache definiert ist
+                    const existingLangMatch = (codeEl.className || '').match(/language-([a-zA-Z0-9_-]+)/);
+                    let chosenLang = existingLangMatch ? existingLangMatch[1] : (pre.getAttribute('data-lang') || '');
+
+                    if (forceAutoDetect && codeLangSelect.value !== 'auto') {
+                        chosenLang = codeLangSelect.value;
+                    }
+
+                    if (chosenLang && chosenLang !== 'auto' && hljs.getLanguage(chosenLang)) {
+                        const result = hljs.highlight(rawCode, { language: chosenLang, ignoreIllegals: true });
+                        codeEl.innerHTML = result.value;
+                        codeEl.className = `hljs language-${chosenLang}`;
+                        pre.setAttribute('data-lang', chosenLang.toUpperCase());
+                    } else {
+                        // Automatische Spracherkennung über Highlight.js
+                        const autoResult = hljs.highlightAuto(rawCode);
+                        const detectedLang = autoResult.language || 'code';
+                        codeEl.innerHTML = autoResult.value;
+                        codeEl.className = `hljs language-${detectedLang}`;
+                        pre.setAttribute('data-lang', detectedLang.toUpperCase());
+                    }
+                });
+
+                updateStats();
+            }
+
+            /**
+             * Erkennt getippte Markdown-Codeblöcke (```sprache ... ```) oder
+             * typische Programmier-Konstrukte direkt im visuellen Editor und wandelt sie um.
+             */
+            function detectAndConvertInlineMarkdownCode() {
+                // 1. Prüfe auf dreifache Backticks ``` im gesamten Dokumenttext
+                const htmlContent = visualEditor.innerHTML;
+                const fenceRegex = /```([a-zA-Z0-9_-]*)\s*<br\s*\/?>([\s\S]*?)```/gi;
+
+                if (fenceRegex.test(htmlContent)) {
+                    visualEditor.innerHTML = htmlContent.replace(fenceRegex, (match, lang, innerHtml) => {
+                        // HTML-Tags innerhalb des gefencten Bereichs in reinen Text mit Zeilenumbrüchen wandeln
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = innerHtml
+                            .replace(/<br\s*\/?>/gi, '\n')
+                            .replace(/<\/p>\s*<p>/gi, '\n')
+                            .replace(/<\/div>\s*<div>/gi, '\n');
+                        const cleanCode = tempDiv.textContent.trim();
+                        const langClass = lang ? `language-${lang.toLowerCase()}` : '';
+                        const dataLang = lang ? lang.toUpperCase() : 'AUTO';
+                        return `<pre data-lang="${dataLang}"><code class="${langClass}"></code></pre>`;
+                    });
+                }
+
+                // Falls ein einzelner Absatz ```code``` enthält, über Markdown-Konvertierung bereinigen
+                const paragraphs = Array.from(visualEditor.querySelectorAll('p, div'));
+                let inFence = false;
+                let fenceLang = '';
+                let collectedLines = [];
+                let nodesToRemove = [];
+
+                for (const p of paragraphs) {
+                    const txt = p.textContent.trim();
+                    if (!inFence && txt.startsWith('```')) {
+                        inFence = true;
+                        fenceLang = txt.slice(3).trim();
+                        collectedLines = [];
+                        nodesToRemove.push(p);
+                    } else if (inFence) {
+                        if (txt.endsWith('```')) {
+                            const lastLine = txt.slice(0, -3);
+                            if (lastLine) collectedLines.push(lastLine);
+                            
+                            // Erzeuge <pre><code> Block
+                            const pre = document.createElement('pre');
+                            const code = document.createElement('code');
+                            if (fenceLang) {
+                                code.className = `language-${fenceLang.toLowerCase()}`;
+                                pre.setAttribute('data-lang', fenceLang.toUpperCase());
+                            }
+                            code.textContent = collectedLines.join('\n');
+                            pre.appendChild(code);
+
+                            p.parentNode.insertBefore(pre, nodesToRemove[0]);
+                            nodesToRemove.push(p);
+                            nodesToRemove.forEach(n => n.remove());
+
+                            inFence = false;
+                            nodesToRemove = [];
+                            collectedLines = [];
+                        } else {
+                            collectedLines.push(p.textContent);
+                            nodesToRemove.push(p);
+                        }
+                    }
+                }
+
+                // 2. Falls Text im Editor markiert ist, der wie Code aussieht, beim Klick auf "Code erkennen" umwandeln
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed && visualEditor.contains(sel.anchorNode)) {
+                    const selectedText = sel.toString().trim();
+                    if (selectedText.length > 0) {
+                        insertHighlightedCodeBlock(selectedText, codeLangSelect.value);
+                        showToast('Markierter Bereich als Programmier-Code formatiert');
+                        return;
+                    }
+                }
+
+                highlightAllCodeBlocks(true);
+                syncVisualToMarkdown();
+                showToast('Code-Blöcke erkannt und farblich aktualisiert');
+            }
+
+            // =========================================================================
+            // 3. FORMATIERUNGSVORLAGEN ANWENDEN (Standard, H1, H2, H3, Ungeordnete Liste)
+            // =========================================================================
+            function applyTemplate(templateType) {
+                visualEditor.focus();
+
+                // Falls wir uns aktuell in einem <pre> Code-Block befinden und "Standard" wählen,
+                // wandeln wir den Block wieder in normalen Absatztext um oder verlassen ihn
+                const currentBlock = getCurrentBlockElement();
+
+                if (templateType === 'UL') {
+                    document.execCommand('insertUnorderedList', false, null);
+                } else {
+                    // Wenn aktuell eine Liste aktiv ist, Liste zuerst ausschalten
+                    if (currentBlock && (currentBlock.tagName === 'LI' || currentBlock.tagName === 'UL')) {
+                        document.execCommand('insertUnorderedList', false, null);
+                    }
+                    document.execCommand('formatBlock', false, `<${templateType}>`);
+                }
+
+                updateActiveFormatState();
+                syncVisualToMarkdown();
+                updateStats();
+            }
+
+            btnTplP.addEventListener('click', () => applyTemplate('P'));
+            btnTplH1.addEventListener('click', () => applyTemplate('H1'));
+            btnTplH2.addEventListener('click', () => applyTemplate('H2'));
+            btnTplH3.addEventListener('click', () => applyTemplate('H3'));
+            btnTplUl.addEventListener('click', () => applyTemplate('UL'));
+
+            btnBold.addEventListener('click', () => {
+                visualEditor.focus();
+                document.execCommand('bold', false, null);
+                syncVisualToMarkdown();
+            });
+
+            btnItalic.addEventListener('click', () => {
+                visualEditor.focus();
+                document.execCommand('italic', false, null);
+                syncVisualToMarkdown();
+            });
+
+            // Ermittelt das aktuelle Block-Element an der Cursor-Position
+            function getCurrentBlockElement() {
+                const sel = window.getSelection();
+                if (!sel || sel.rangeCount === 0) return null;
+                let node = sel.anchorNode;
+                if (!node) return null;
+                if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+
+                while (node && node !== visualEditor) {
+                    if (['P', 'H1', 'H2', 'H3', 'UL', 'LI', 'PRE'].includes(node.tagName)) {
+                        return node;
+                    }
+                    node = node.parentNode;
+                }
+                return null;
+            }
+
+            // Aktualisiert den aktiven Button in der Toolbar & die Statusanzeige
+            function updateActiveFormatState() {
+                formatButtons.forEach(btn => btn.classList.remove('active'));
+                const block = getCurrentBlockElement();
+
+                if (!block) {
+                    btnTplP.classList.add('active');
+                    statusBlock.textContent = 'Vorlage: Standard';
+                    return;
+                }
+
+                const tag = block.tagName;
+                if (tag === 'H1') {
+                    btnTplH1.classList.add('active');
+                    statusBlock.textContent = 'Vorlage: Überschrift 1';
+                } else if (tag === 'H2') {
+                    btnTplH2.classList.add('active');
+                    statusBlock.textContent = 'Vorlage: Überschrift 2';
+                } else if (tag === 'H3') {
+                    btnTplH3.classList.add('active');
+                    statusBlock.textContent = 'Vorlage: Überschrift 3';
+                } else if (tag === 'LI' || tag === 'UL') {
+                    btnTplUl.classList.add('active');
+                    statusBlock.textContent = 'Vorlage: Ungeordnete Liste';
+                } else if (tag === 'PRE') {
+                    const lang = block.getAttribute('data-lang') || 'CODE';
+                    statusBlock.textContent = `Programmier-Code (${lang})`;
+                } else {
+                    btnTplP.classList.add('active');
+                    statusBlock.textContent = 'Vorlage: Standard';
+                }
+            }
+
+            // =========================================================================
+            // 4. CODE-BLOCK EINFÜGEN & MODAL-STEUERUNG
+            // =========================================================================
+            function insertHighlightedCodeBlock(codeString, lang = 'auto') {
+                visualEditor.focus();
+                if (savedSelectionRange) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelectionRange);
+                    savedSelectionRange = null;
+                }
+
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+                code.textContent = codeString;
+
+                if (lang && lang !== 'auto') {
+                    code.className = `language-${lang}`;
+                    pre.setAttribute('data-lang', lang.toUpperCase());
+                } else {
+                    pre.setAttribute('data-lang', 'AUTO');
+                }
+
+                pre.appendChild(code);
+
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && visualEditor.contains(sel.anchorNode)) {
+                    const range = sel.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(pre);
+
+                    // Nachfolgenden Standard-Absatz sicherstellen, damit man bequem weiterschreiben kann
+                    const nextP = document.createElement('p');
+                    nextP.innerHTML = '<br>';
+                    pre.insertAdjacentElement('afterend', nextP);
+
+                    // Cursor in den neuen Absatz setzen
+                    const newRange = document.createRange();
+                    newRange.setStart(nextP, 0);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                } else {
+                    visualEditor.appendChild(pre);
+                    const nextP = document.createElement('p');
+                    nextP.innerHTML = '<br>';
+                    visualEditor.appendChild(nextP);
+                }
+
+                highlightAllCodeBlocks();
+                syncVisualToMarkdown();
+            }
+
+            btnInsertCode.addEventListener('click', () => {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && visualEditor.contains(sel.anchorNode)) {
+                    savedSelectionRange = sel.getRangeAt(0).cloneRange();
+                    const selectedText = sel.toString().trim();
+                    if (selectedText.length > 0) {
+                        // Direkt umwandeln, wenn Text markiert wurde
+                        insertHighlightedCodeBlock(selectedText, codeLangSelect.value);
+                        showToast('Markierter Text als Code-Block formatiert');
+                        return;
+                    }
+                }
+                // Öffne Modal für komfortable Code-Eingabe
+                modalLangSelect.value = codeLangSelect.value;
+                modalCodeInput.value = '';
+                codeModal.classList.remove('hidden');
+                codeModal.classList.add('flex');
+                setTimeout(() => modalCodeInput.focus(), 50);
+            });
+
+            function closeCodeModal() {
+                codeModal.classList.add('hidden');
+                codeModal.classList.remove('flex');
+            }
+
+            btnCloseModal.addEventListener('click', closeCodeModal);
+            btnCancelModal.addEventListener('click', closeCodeModal);
+            btnConfirmCode.addEventListener('click', () => {
+                const codeText = modalCodeInput.value;
+                if (codeText.trim().length > 0) {
+                    insertHighlightedCodeBlock(codeText, modalLangSelect.value);
+                    showToast('Programmier-Code eingefügt und hervorgehoben');
+                }
+                closeCodeModal();
+            });
+
+            btnDetectCode.addEventListener('click', detectAndConvertInlineMarkdownCode);
+
+            // Wenn im Dropdown eine Sprache gewählt wird und der Cursor in einem Codeblock steht, sofort ändern
+            codeLangSelect.addEventListener('change', () => {
+                const block = getCurrentBlockElement();
+                if (block && block.tagName === 'PRE') {
+                    const codeEl = block.querySelector('code');
+                    if (codeEl) {
+                        const newLang = codeLangSelect.value;
+                        codeEl.className = newLang === 'auto' ? '' : `language-${newLang}`;
+                        block.setAttribute('data-lang', newLang.toUpperCase());
+                        highlightAllCodeBlocks();
+                        syncVisualToMarkdown();
+                        updateActiveFormatState();
+                    }
+                }
+            });
+
+            // =========================================================================
+            // 5. SYNCHRONISIERUNG ZWISCHEN VISUELLEM EDITOR UND MARKDOWN
+            // =========================================================================
+            function syncVisualToMarkdown() {
+                if (isSyncing) return;
+                isSyncing = true;
+                try {
+                    const md = turndownService.turndown(visualEditor.innerHTML);
+                    markdownEditor.value = md;
+                } catch (err) {
+                    console.error('Markdown-Konvertierungsfehler:', err);
+                }
+                isSyncing = false;
+            }
+
+            function renderMarkdownToVisual(mdText) {
+                if (isSyncing) return;
+                isSyncing = true;
+                try {
+                    const rawHtml = marked.parse(mdText);
+                    visualEditor.innerHTML = rawHtml;
+                    highlightAllCodeBlocks();
+                } catch (err) {
+                    console.error('HTML-Renderfehler:', err);
+                }
+                isSyncing = false;
+                updateStats();
+            }
+
+            // Events im visuellen Editor
+            visualEditor.addEventListener('input', () => {
+                syncVisualToMarkdown();
+                updateStats();
+            });
+
+            visualEditor.addEventListener('keyup', (e) => {
+                updateActiveFormatState();
+                // Automatische Live-Erkennung, wenn jemand ``` eintippt und Enter drückt
+                if (e.key === 'Enter') {
+                    const html = visualEditor.innerHTML;
+                    if (html.includes('```') && (html.match(/```/g) || []).length >= 2) {
+                        detectAndConvertInlineMarkdownCode();
+                    }
+                }
+            });
+
+            visualEditor.addEventListener('mouseup', updateActiveFormatState);
+
+            // Sauberes Verhalten für Tab und Enter innerhalb von <pre> Code-Blöcken
+            visualEditor.addEventListener('keydown', (e) => {
+                const block = getCurrentBlockElement();
+                if (block && block.tagName === 'PRE') {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        document.execCommand('insertText', false, '    ');
+                    } else if (e.key === 'Enter' && !e.shiftKey) {
+                        // In einem Code-Block fügt Enter einen Zeilenumbruch ein
+                        e.preventDefault();
+                        document.execCommand('insertLineBreak');
+                    }
+                }
+            });
+
+            // Events im Markdown-Rohdaten-Editor
+            markdownEditor.addEventListener('input', () => {
+                renderMarkdownToVisual(markdownEditor.value);
+            });
+
+            // =========================================================================
+            // 6. DATEI ÖFFNEN & SPEICHERN (.TXT und .MD)
+            // =========================================================================
+            document.getElementById('btn-open').addEventListener('click', () => {
+                fileInput.value = '';
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) loadFileIntoEditor(file);
+            });
+
+            /**
+             * Lädt eine .txt oder .md Datei und erkennt enthaltene Überschriften,
+             * Listen sowie Programmier-Code-Blöcke.
+             */
+            function loadFileIntoEditor(file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result || '';
+                    const baseName = file.name.replace(/\.(md|markdown|txt)$/i, '');
+                    docFilename.value = baseName || 'Dokument';
+
+                    const isMarkdown = /\.(md|markdown)$/i.test(file.name);
+
+                    if (isMarkdown) {
+                        markdownEditor.value = content;
+                        renderMarkdownToVisual(content);
+                        showToast(`Markdown-Datei "${file.name}" geöffnet`);
+                    } else {
+                        // .TXT-Datei: Prüfen, ob Markdown-Syntax oder Code enthalten ist
+                        const hasMarkdownFeatures = /(^#{1,3}\s|```|^-\s|\*\s)/m.test(content);
+                        if (hasMarkdownFeatures) {
+                            markdownEditor.value = content;
+                            renderMarkdownToVisual(content);
+                        } else {
+                            // Reine Textdatei mit intelligenter Code-Block-Erkennung laden
+                            const paragraphs = content.split(/\r?\n\r?\n/);
+                            const htmlParts = paragraphs.map(block => {
+                                const trimmed = block.trim();
+                                if (!trimmed) return '';
+                                if (looksLikeProgrammingCode(trimmed)) {
+                                    const escaped = escapeHtml(trimmed);
+                                    return `<pre data-lang="AUTO"><code>${escaped}</code></pre>`;
+                                }
+                                const escapedLines = escapeHtml(trimmed).replace(/\r?\n/g, '<br>');
+                                return `<p>${escapedLines}</p>`;
+                            });
+                            visualEditor.innerHTML = htmlParts.join('') || '<p><br></p>';
+                            highlightAllCodeBlocks();
+                            syncVisualToMarkdown();
+                        }
+                        showToast(`Textdatei "${file.name}" geöffnet`);
+                    }
+                    updateStats();
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            // Heuristik zur Erkennung, ob ein Textabsatz Programmier-Code ist
+            function looksLikeProgrammingCode(text) {
+                const lines = text.split(/\r?\n/);
+                if (lines.length < 2) return false;
+                const codeIndicators = [
+                    /^(function|const|let|var|import|export|class|def|public|private|if|for|while|return)\b/m,
+                    /[{};]\s*$/m,
+                    /=>|===|!==|\+=|console\.log|print\(|SELECT\s+.*\s+FROM/i,
+                    /^<\/?[a-z][\s\S]*>/i
+                ];
+                let score = 0;
+                codeIndicators.forEach(regex => {
+                    if (regex.test(text)) score++;
+                });
+                return score >= 2;
+            }
+
+            function escapeHtml(str) {
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+            /**
+             * Speichert den aktuellen Inhalt als .md oder .txt (nutzt File System Access API falls verfügbar,
+             * ansonsten direkten Download-Fallback)
+             */
+            async function saveDocumentAs(extension) {
+                syncVisualToMarkdown();
+                const cleanName = (docFilename.value.trim() || 'Dokument').replace(/\.(md|txt)$/i, '');
+                const fullFilename = `${cleanName}.${extension}`;
+
+                let outputContent = '';
+                let mimeType = 'text/plain;charset=utf-8';
+
+                if (extension === 'md') {
+                    outputContent = markdownEditor.value;
+                    mimeType = 'text/markdown;charset=utf-8';
+                } else {
+                    // Für .TXT sauberen Klartext aus dem Editor extrahieren
+                    outputContent = visualEditor.innerText;
+                }
+
+                // Versuch über moderne File System Access API (Speichern-unter Dialog)
+                if (window.showSaveFilePicker) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: fullFilename,
+                            types: [{
+                                description: extension === 'md' ? 'Markdown-Dokument (.md)' : 'Textdatei (.txt)',
+                                accept: { [mimeType.split(';')[0]]: [`.${extension}`] }
+                            }]
+                        });
+                        const writable = await handle.createWritable();
+                        await writable.write(outputContent);
+                        await writable.close();
+                        showToast(`Erfolgreich als "${handle.name}" gespeichert`);
+                        return;
+                    } catch (err) {
+                        // Bei Abbruch durch den Nutzer nichts tun; bei Sicherheitsfehler im iFrame Fallback nutzen
+                        if (err.name === 'AbortError') return;
+                    }
+                }
+
+                // Klassischer Blob-Download Fallback
+                const blob = new Blob([outputContent], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fullFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`Datei "${fullFilename}" wurde gespeichert`);
+            }
+
+            document.getElementById('btn-save-md').addEventListener('click', () => saveDocumentAs('md'));
+            document.getElementById('btn-save-txt').addEventListener('click', () => saveDocumentAs('txt'));
+
+            // Neues Dokument erstellen
+            document.getElementById('btn-new').addEventListener('click', () => {
+                docFilename.value = 'Neues_Dokument';
+                visualEditor.innerHTML = '<h1>Neues Dokument</h1><p>Beginne hier mit der Textverarbeitung in <strong>Noto Sans</strong>...</p>';
+                syncVisualToMarkdown();
+                updateStats();
+                visualEditor.focus();
+                showToast('Neues leeres Dokument erstellt');
+            });
+
+            // Drag & Drop Unterstützung für .txt und .md Dateien
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropOverlay.classList.remove('hidden');
+                dropOverlay.classList.add('flex');
+            });
+
+            dropOverlay.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropOverlay.classList.add('hidden');
+                dropOverlay.classList.remove('flex');
+            });
+
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropOverlay.classList.add('hidden');
+                dropOverlay.classList.remove('flex');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    loadFileIntoEditor(e.dataTransfer.files[0]);
+                }
+            });
+
+            // =========================================================================
+            // 7. ANSICHTSMODI (EDITOR, SPLIT-SCREEN, MARKDOWN) & DARK MODE
+            // =========================================================================
+            const viewButtons = document.querySelectorAll('.view-btn');
+            viewButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const mode = btn.getAttribute('data-view');
+                    viewButtons.forEach(b => {
+                        b.classList.remove('bg-white', 'dark:bg-slate-700', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+                        b.classList.add('text-slate-600', 'dark:text-slate-400');
+                    });
+                    btn.classList.add('bg-white', 'dark:bg-slate-700', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+                    btn.classList.remove('text-slate-600', 'dark:text-slate-400');
+
+                    if (mode === 'visual') {
+                        visualPane.classList.remove('hidden');
+                        markdownPane.classList.add('hidden');
+                        markdownPane.classList.remove('flex');
+                    } else if (mode === 'split') {
+                        visualPane.classList.remove('hidden');
+                        markdownPane.classList.remove('hidden');
+                        markdownPane.classList.add('flex');
+                        syncVisualToMarkdown();
+                    } else if (mode === 'markdown') {
+                        visualPane.classList.add('hidden');
+                        markdownPane.classList.remove('hidden');
+                        markdownPane.classList.add('flex');
+                        syncVisualToMarkdown();
+                    }
+                });
+            });
+
+            // Dark-Mode Umschalter
+            const btnTheme = document.getElementById('btn-theme');
+            const iconSun = document.getElementById('icon-sun');
+            const iconMoon = document.getElementById('icon-moon');
+
+            btnTheme.addEventListener('click', () => {
+                const htmlEl = document.documentElement;
+                htmlEl.classList.toggle('dark');
+                const isDark = htmlEl.classList.contains('dark');
+                iconSun.classList.toggle('hidden', !isDark);
+                iconMoon.classList.toggle('hidden', isDark);
+            });
+
+            // =========================================================================
+            // 8. STATISTIKEN & TOAST-MELDUNGEN
+            // =========================================================================
+            function updateStats() {
+                const text = visualEditor.innerText || '';
+                const trimmed = text.trim();
+                const words = trimmed ? trimmed.split(/\s+/).length : 0;
+                const chars = text.replace(/\n/g, '').length;
+                const lines = trimmed ? text.split(/\r?\n/).length : 0;
+                const codeBlocks = visualEditor.querySelectorAll('pre').length;
+
+                statWords.textContent = `${words} ${words === 1 ? 'Wort' : 'Wörter'}`;
+                statChars.textContent = `${chars} Zeichen`;
+                statLines.textContent = `${lines} ${lines === 1 ? 'Zeile' : 'Zeilen'}`;
+                statusCodeCount.textContent = `Erkannte Code-Blöcke: ${codeBlocks}`;
+            }
+
+            let toastTimeout = null;
+            function showToast(message) {
+                const toast = document.getElementById('toast');
+                const toastMsg = document.getElementById('toast-msg');
+                toastMsg.textContent = message;
+                toast.classList.remove('translate-y-16', 'opacity-0');
+                if (toastTimeout) clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => {
+                    toast.classList.add('translate-y-16', 'opacity-0');
+                }, 3000);
+            }
+
+            // =========================================================================
+            // 9. INITIALES BEISPIELDOKUMENT LADEN
+            // =========================================================================
+            const initialMarkdown = `# Willkommen in NotoWrite Studio
+
+Dies ist dein modernes Textverarbeitungs-Programm mit der Standard-Schriftart **Noto Sans**. Du kannst jederzeit Texte verfassen, Formatierungsvorlagen anwenden sowie **.TXT**- und **.MD**-Dateien öffnen und speichern.
+
+## 1. Enthaltene Formatierungsvorlagen
+
+Über die obere Werkzeugleiste stehen dir alle gewünschten Vorlagen direkt per Klick zur Verfügung:
+
+- **Standard**: Normaler Fließtext-Absatz in *Noto Sans*
+- **Überschrift 1**: Große Dokumenten-Hauptüberschrift
+- **Überschrift 2**: Strukturierte Abschnittsüberschrift
+- **Überschrift 3**: Kompakte Unterüberschrift
+- **Ungeordnete Liste**: Aufzählungsliste wie diese hier
+
+### Beispiel für eine Überschrift 3
+
+Du kannst beliebige Textstellen markieren und oben auf eine Vorlage klicken, um das Format sofort umzuschalten.
+
+## 2. Automatische Programmier-Code-Erkennung
+
+Programmier-Codes werden automatisch erkannt und farblich hervorgehoben (**Syntax-Highlighting**). Du kannst entweder den Button **„Code-Block“** nutzen oder im Text einfach dreifache Backticks (\`\`\`sprache ... \`\`\`) tippen:
+
+\`\`\`javascript
+// Beispiel: JavaScript-Code mit automatischer Farb-Darstellung
+class DokumentenManager {
+    constructor(dateiname) {
+        this.dateiname = dateiname;
+        this.schriftart = "Noto Sans";
+    }
+
+    speichern(format = "md") {
+        console.log(\`Speichere "\${this.dateiname}.\${format}" mit Schriftart \${this.schriftart}...\`);
+        return true;
+    }
+}
+
+const doc = new DokumentenManager("Projektbericht");
+doc.speichern("md");
+\`\`\`
+
+Auch andere Sprachen wie **Python** oder **SQL** werden automatisch erkannt:
+
+\`\`\`python
+def berechne_statistik(text: str) -> dict:
+    woerter = text.split()
+    return {
+        "wortanzahl": len(woerter),
+        "zeichen": len(text)
+    }
+
+print(berechne_statistik("Hallo aus NotoWrite Studio!"))
+\`\`\`
+`;
+
+            docFilename.value = 'Willkommen_NotoWrite';
+            markdownEditor.value = initialMarkdown;
+            renderMarkdownToVisual(initialMarkdown);
+            updateActiveFormatState();
+        });
+    </script>
+</body>
+</html>
