@@ -29,5 +29,10 @@
 
 ## Versionen ##
 
+### Version 3.0 ###
+- Ansicht kompakter
+- Navigator eingefügt
+- für Android optimiert
+
 ### Version 1.0 ###
 - Basis-Variante
