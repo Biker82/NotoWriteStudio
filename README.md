@@ -15,7 +15,7 @@
 
 **NotoWrite_Studio_*.html** herunterladen und mit dem Browser öffnen. 
 
-*Erfolgreich getestet mit Linux Mint + Firefox 158.0.1 (64-Bit)*
+*Erfolgreich getestet mit Linux Mint + Firefox 158.0.1 (64-Bit) und Samsung Smartphone Android 9*
 
 
 ## Umfang ##
