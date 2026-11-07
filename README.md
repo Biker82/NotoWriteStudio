@@ -7,6 +7,9 @@
 
 &#x27A1; **Einfaches und übersichtliches Textverarbeitungsprogramm**
 
+*erstellt mit Gemini Argon*
+
+
 ![NotoWrite_Studio1.jpg](NotoWrite_Studio1.jpg)
 
 
@@ -29,6 +32,9 @@
 
 ## Versionen ##
 
+### Version 3.2 ###
+- Unterstützung von OpenDocument-Dateien (ODT; OnlyOffice)
+
 ### Version 3.0 ###
 - Ansicht kompakter
 - Navigator eingefügt
@@ -36,3 +42,4 @@
 
 ### Version 1.0 ###
 - Basis-Variante
+
