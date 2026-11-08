@@ -32,6 +32,10 @@
 
 ## Versionen ##
 
+### Version 3.5 ###
+- Kompatibilität der ODT-Dateien mit Libre Office (Fehler in styles.xml) behoben.
+- geordnete Liste mit Zahlen hinzugefügt
+
 ### Version 3.2 ###
 - Unterstützung von OpenDocument-Dateien (ODT; OnlyOffice)
 
