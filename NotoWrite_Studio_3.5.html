@@ -1,0 +1,2529 @@
+<!DOCTYPE html>
+<html lang="de" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>NotoWrite Studio – (c) Tobias Schunn</title>
+    <!-- VERSION 3.5 (mit kombinierbarer Nummerierung für alle Formatvorlagen & ODT-Sync) --> 
+    <!-- erstellt mit Gemini Argon --> 
+    <!-- Google Fonts: Noto Sans & Noto Sans Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;500;600&family=Noto+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans"', 'sans-serif'],
+                        mono: ['"Noto Sans Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Highlight.js für Syntax-Highlighting (Atom One Dark Theme) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Marked.js (Markdown -> HTML), Turndown.js (HTML -> Markdown) & JSZip (für ODT-Import & -Export) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* Grundlegende Schriftart- & Android-Touch-Regeln */
+        body {
+            font-family: 'Noto Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+        }
+
+        /* Ausblenden der Scrollbar für kompakte mobile Toolbars */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Styling für den visuellen Dokumenten-Editor (Rich Text) */
+        #visual-editor {
+            font-family: 'Noto Sans', sans-serif;
+            outline: none;
+            line-height: 1.65;
+            font-size: 0.96rem;
+            color: #1e293b;
+            min-height: 100%;
+            word-wrap: break-word;
+        }
+
+        @media (min-width: 640px) {
+            #visual-editor {
+                line-height: 1.75;
+                font-size: 1.05rem;
+                min-height: 550px;
+            }
+        }
+
+        .dark #visual-editor {
+            color: #e2e8f0;
+        }
+
+        /* Formatierungsvorlagen im Editor (Optimiert für Smartphone & Desktop) */
+        #visual-editor p {
+            margin-bottom: 0.85rem;
+            font-weight: 400;
+        }
+
+        #visual-editor h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-top: 1.1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid #e2e8f0;
+            color: #0f172a;
+        }
+        @media (min-width: 640px) {
+            #visual-editor h1 {
+                font-size: 2.1rem;
+                margin-top: 1.5rem;
+                margin-bottom: 1rem;
+            }
+        }
+        .dark #visual-editor h1 {
+            border-bottom-color: #334155;
+            color: #f8fafc;
+        }
+
+        #visual-editor h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            line-height: 1.35;
+            margin-top: 1rem;
+            margin-bottom: 0.6rem;
+            color: #1e293b;
+        }
+        @media (min-width: 640px) {
+            #visual-editor h2 {
+                font-size: 1.6rem;
+                margin-top: 1.4rem;
+                margin-bottom: 0.75rem;
+            }
+        }
+        .dark #visual-editor h2 {
+            color: #f1f5f9;
+        }
+
+        #visual-editor h3 {
+            font-size: 1.12rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 0.9rem;
+            margin-bottom: 0.45rem;
+            color: #334155;
+        }
+        @media (min-width: 640px) {
+            #visual-editor h3 {
+                font-size: 1.3rem;
+                margin-top: 1.2rem;
+                margin-bottom: 0.5rem;
+            }
+        }
+        .dark #visual-editor h3 {
+            color: #cbd5e1;
+        }
+
+        #visual-editor ul {
+            list-style-type: disc;
+            padding-left: 1.4rem;
+            margin-bottom: 0.9rem;
+        }
+
+        #visual-editor ol {
+            list-style-type: decimal;
+            padding-left: 1.6rem;
+            margin-bottom: 0.9rem;
+        }
+
+        #visual-editor li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Automatische Anpassung der Nummerierung (1., 2., 3.) und Aufzählungszeichen an die jeweilige Formatvorlage (H1, H2, H3) der Zeile */
+        #visual-editor li[data-tpl="H1"],
+        #visual-editor li:has(> h1) {
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-top: 1.1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid #e2e8f0;
+            color: #0f172a;
+        }
+        @media (min-width: 640px) {
+            #visual-editor li[data-tpl="H1"],
+            #visual-editor li:has(> h1) {
+                font-size: 2.1rem;
+                margin-top: 1.5rem;
+                margin-bottom: 1rem;
+            }
+        }
+        .dark #visual-editor li[data-tpl="H1"],
+        .dark #visual-editor li:has(> h1) {
+            border-bottom-color: #334155;
+            color: #f8fafc;
+        }
+
+        #visual-editor li[data-tpl="H2"],
+        #visual-editor li:has(> h2) {
+            font-size: 1.3rem;
+            font-weight: 600;
+            line-height: 1.35;
+            margin-top: 1rem;
+            margin-bottom: 0.6rem;
+            color: #1e293b;
+        }
+        @media (min-width: 640px) {
+            #visual-editor li[data-tpl="H2"],
+            #visual-editor li:has(> h2) {
+                font-size: 1.6rem;
+                margin-top: 1.4rem;
+                margin-bottom: 0.75rem;
+            }
+        }
+        .dark #visual-editor li[data-tpl="H2"],
+        .dark #visual-editor li:has(> h2) {
+            color: #f1f5f9;
+        }
+
+        #visual-editor li[data-tpl="H3"],
+        #visual-editor li:has(> h3) {
+            font-size: 1.12rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 0.9rem;
+            margin-bottom: 0.45rem;
+            color: #334155;
+        }
+        @media (min-width: 640px) {
+            #visual-editor li[data-tpl="H3"],
+            #visual-editor li:has(> h3) {
+                font-size: 1.3rem;
+                margin-top: 1.2rem;
+                margin-bottom: 0.5rem;
+            }
+        }
+        .dark #visual-editor li[data-tpl="H3"],
+        .dark #visual-editor li:has(> h3) {
+            color: #cbd5e1;
+        }
+
+        /* Wenn H1/H2/H3 innerhalb eines <li> liegt, übernimmt das <li> (inkl. Nummerierung ::marker) die Abstände & Rahmen */
+        #visual-editor li > h1,
+        #visual-editor li > h2,
+        #visual-editor li > h3,
+        #visual-editor li > p {
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            display: inline;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: inherit;
+            color: inherit;
+        }
+
+        #visual-editor ol:has(li[data-tpl="H1"]),
+        #visual-editor ol:has(li > h1) {
+            padding-left: 2.3rem;
+        }
+        #visual-editor ol:has(li[data-tpl="H2"]),
+        #visual-editor ol:has(li > h2) {
+            padding-left: 2.0rem;
+        }
+
+        /* Programmier-Code-Blöcke im Editor */
+        #visual-editor pre {
+            position: relative;
+            background-color: #282c34;
+            color: #abb2bf;
+            font-family: 'Noto Sans Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            padding: 1.9rem 0.9rem 0.85rem 0.9rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            border: 1px solid #3e4451;
+        }
+
+        @media (min-width: 640px) {
+            #visual-editor pre {
+                font-size: 0.92rem;
+                line-height: 1.6;
+                padding: 2.2rem 1.25rem 1.1rem 1.25rem;
+                border-radius: 0.65rem;
+            }
+        }
+
+        /* Sprach-Badge oben rechts in jedem Code-Block */
+        #visual-editor pre::before {
+            content: attr(data-lang);
+            position: absolute;
+            top: 0.35rem;
+            right: 0.6rem;
+            font-family: 'Noto Sans', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9da5b4;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.1rem 0.45rem;
+            border-radius: 0.3rem;
+            pointer-events: none;
+        }
+
+        #visual-editor pre::after {
+            content: "● ● ●";
+            position: absolute;
+            top: 0.4rem;
+            left: 0.75rem;
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            color: #5c6370;
+            pointer-events: none;
+        }
+
+        #visual-editor pre code {
+            font-family: 'Noto Sans Mono', monospace;
+            background: transparent !important;
+            padding: 0 !important;
+            color: inherit;
+            font-size: inherit;
+            display: block;
+            white-space: pre;
+        }
+
+        /* Inline-Code */
+        #visual-editor :not(pre) > code {
+            font-family: 'Noto Sans Mono', monospace;
+            background-color: #f1f5f9;
+            color: #e11d48;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.3rem;
+            font-size: 0.88em;
+            border: 1px solid #e2e8f0;
+        }
+        .dark #visual-editor :not(pre) > code {
+            background-color: #1e293b;
+            color: #fb7185;
+            border-color: #334155;
+        }
+
+        /* Aktive Formatierungs-Buttons */
+        .format-btn.active {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        /* Dezente Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<!-- h-[100dvh] passt sich auf Android automatisch der Bildschirmtastatur an -->
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 h-[100dvh] flex flex-col overflow-hidden select-none transition-colors duration-200">
+
+    <!-- Versteckter Datei-Input für .txt, .md und .odt -->
+    <input type="file" id="file-input" accept=".txt,.md,.markdown,.odt,text/plain,text/markdown,application/vnd.oasis.opendocument.text" class="hidden">
+
+    <!-- Drag & Drop Overlay -->
+    <div id="drop-overlay" class="fixed inset-0 bg-blue-600/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center text-white p-4">
+        <div class="border-2 border-dashed border-white rounded-2xl p-8 flex flex-col items-center max-w-md text-center">
+            <svg class="w-14 h-14 mb-3 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <h2 class="text-lg font-bold mb-1">Datei hier ablegen</h2>
+            <p class="text-xs text-blue-100">Unterstützte Formate: <strong>.TXT</strong>, <strong>.MD</strong> und <strong>.ODT</strong></p>
+        </div>
+    </div>
+
+    <!-- EINZEILIGE ULTRA-KOMPAKTE KOPF- & WERKZEUGLEISTE (Alle Funktionen in 1 Zeile, horizontal wischbar) -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-2 py-1 flex items-center flex-nowrap gap-1 shrink-0 z-20 overflow-x-auto no-scrollbar whitespace-nowrap shadow-sm">
+        
+        <!-- Logo & Dateiname -->
+        <div class="flex items-center gap-1 shrink-0">
+            <div class="w-6 h-6 rounded-md bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-sm shrink-0" title="NotoWrite Studio">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <input type="text" id="doc-filename" value="Dokument" 
+                class="font-semibold text-[11px] bg-slate-50/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 rounded px-1.5 py-0.5 outline-none transition w-20 sm:w-28 shrink-0"
+                title="Dateiname bearbeiten">
+        </div>
+
+        <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 shrink-0"></div>
+
+        <!-- Gruppe 1: Die 6 Haupt-Formatierungsvorlagen + Navigator -->
+        <div class="flex items-center gap-1 shrink-0">
+            <!-- 1. Standard -->
+            <button id="tpl-p" data-format="P" class="format-btn px-1.5 py-1 text-[11px] font-medium rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition flex items-center gap-0.5 shadow-sm shrink-0" title="Standard-Absatz (Noto Sans)">
+                <span class="text-[10px] font-bold opacity-75">¶</span>
+                <span>Std</span>
+            </button>
+
+            <!-- 2. Überschrift 1 -->
+            <button id="tpl-h1" data-format="H1" class="format-btn px-1.5 py-1 text-[11px] font-bold rounded bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition shadow-sm shrink-0" title="Große Hauptüberschrift (H1)">
+                H1
+            </button>
+
+            <!-- 3. Überschrift 2 -->
+            <button id="tpl-h2" data-format="H2" class="format-btn px-1.5 py-1 text-[11px] font-semibold rounded bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition shadow-sm shrink-0" title="Abschnittsüberschrift (H2)">
+                H2
+            </button>
+
+            <!-- 4. Überschrift 3 -->
+            <button id="tpl-h3" data-format="H3" class="format-btn px-1.5 py-1 text-[11px] font-medium rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition shadow-sm shrink-0" title="Unterüberschrift (H3)">
+                H3
+            </button>
+
+            <!-- 5. Geordnete Liste (1., 2., 3.) -->
+            <button id="tpl-ol" data-format="OL" class="format-btn px-1.5 py-1 text-[11px] font-medium rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition flex items-center gap-1 shadow-sm shrink-0" title="Geordnete Liste mit Zahlen (1., 2., 3.)">
+                <span class="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 leading-none">1.</span>
+                <span>Zahlen</span>
+            </button>
+
+            <!-- 6. Ungeordnete Liste -->
+            <button id="tpl-ul" data-format="UL" class="format-btn px-1.5 py-1 text-[11px] font-medium rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition flex items-center gap-1 shadow-sm shrink-0" title="Ungeordnete Aufzählungsliste">
+                <svg class="w-3 h-3 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+                <span>Liste</span>
+            </button>
+
+            <!-- Navigator Button (wie in LibreOffice) -->
+            <button id="btn-navigator" class="px-1.5 py-1 text-[11px] font-medium rounded bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/80 active:scale-95 transition flex items-center gap-1 shadow-sm shrink-0" title="Navigator öffnen (Alle Überschriften 1 anzeigen)">
+                <svg class="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                </svg>
+                <span>Nav</span>
+            </button>
+        </div>
+
+        <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 shrink-0"></div>
+
+        <!-- Gruppe 2: Basis-Textauszeichnung (Fett, Kursiv) -->
+        <div class="flex items-center gap-1 shrink-0">
+            <button id="btn-bold" class="rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 font-bold text-[11px] w-6 h-6 flex items-center justify-center shadow-sm shrink-0" title="Fett (Strg+B)">B</button>
+            <button id="btn-italic" class="rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 italic font-serif text-[11px] w-6 h-6 flex items-center justify-center shadow-sm shrink-0" title="Kursiv (Strg+I)">I</button>
+        </div>
+
+        <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 shrink-0"></div>
+
+        <!-- Gruppe 3: Programmier-Code Werkzeuge & Syntax-Erkennung -->
+        <div class="flex items-center gap-1 shrink-0">
+            <select id="code-lang-select" class="text-[11px] font-medium rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-1 py-1 outline-none focus:border-blue-500 shadow-sm max-w-[88px] shrink-0" title="Programmiersprache (oder Auto-Erkennung)">
+                <option value="auto">✨ Auto</option>
+                <option value="javascript">JS / TS</option>
+                <option value="python">Python</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="java">Java</option>
+                <option value="csharp">C#</option>
+                <option value="cpp">C / C++</option>
+                <option value="sql">SQL</option>
+                <option value="json">JSON</option>
+                <option value="bash">Bash</option>
+                <option value="php">PHP</option>
+            </select>
+
+            <button id="btn-insert-code" class="px-1.5 py-1 text-[11px] font-medium rounded bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 active:scale-95 transition flex items-center gap-1 shadow-sm shrink-0" title="Markierten Text als Code-Block formatieren oder Code-Editor öffnen">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                </svg>
+                <span>Code</span>
+            </button>
+
+            <button id="btn-detect-code" class="px-1.5 py-1 text-[11px] font-medium rounded bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/70 active:scale-95 transition flex items-center gap-1 shadow-sm shrink-0" title="Erkennt Programmiercode und Markdown-Blöcke im Text und färbt sie automatisch ein">
+                <svg class="w-3 h-3 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                <span>Färben</span>
+            </button>
+        </div>
+
+        <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 shrink-0"></div>
+
+        <!-- Gruppe 4: Datei-Aktionen (Neu, Öffnen, .MD, .TXT, .ODT) & Ansichten -->
+        <div class="flex items-center gap-1 shrink-0 ml-auto">
+            <button id="btn-new" class="px-1.5 py-1 text-[11px] font-medium rounded text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 flex items-center gap-0.5 transition shrink-0" title="Leeres Dokument erstellen">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>Neu</span>
+            </button>
+
+            <button id="btn-open" class="px-1.5 py-1 text-[11px] font-medium rounded text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 flex items-center gap-1 transition shadow-sm shrink-0" title=".txt, .md oder .odt Datei öffnen">
+                <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>Öffnen</span>
+            </button>
+
+            <button id="btn-save-md" class="px-1.5 py-1 text-[11px] font-medium rounded text-white bg-blue-600 hover:bg-blue-700 active:scale-95 flex items-center gap-0.5 transition shadow-sm shrink-0" title="Als Markdown-Datei (.md) speichern">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span>.MD</span>
+            </button>
+
+            <button id="btn-save-txt" class="px-1.5 py-1 text-[11px] font-medium rounded text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 flex items-center gap-0.5 transition shadow-sm shrink-0" title="Als Textdatei (.txt) speichern">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+                <span>.TXT</span>
+            </button>
+
+            <button id="btn-save-odt" class="px-1.5 py-1 text-[11px] font-medium rounded text-white bg-orange-600 hover:bg-orange-700 active:scale-95 flex items-center gap-0.5 transition shadow-sm shrink-0" title="Als LibreOffice Writer Dokument (.odt) speichern">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>.ODT</span>
+            </button>
+
+            <!-- Ansichts-Umschalter (Text | Split | MD) -->
+            <div class="bg-slate-100 dark:bg-slate-800 p-0.5 rounded flex items-center text-[10px] font-medium border border-slate-200 dark:border-slate-700 shrink-0">
+                <button data-view="visual" class="view-btn px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm transition">Text</button>
+                <button data-view="split" class="view-btn px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition hidden md:inline-block">Split</button>
+                <button data-view="markdown" class="view-btn px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">MD</button>
+            </div>
+
+            <!-- Dark Mode Umschalter -->
+            <button id="btn-theme" class="p-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 border border-slate-200 dark:border-slate-700 transition shrink-0" title="Hell-/Dunkelmodus umschalten">
+                <svg id="icon-sun" class="w-3.5 h-3.5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <svg id="icon-moon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- HAUPT-ARBEITSBEREICH (Optimierte Ränder für Android-Smartphones) -->
+    <main class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Linke/Haupt-Spalte: Visueller Rich-Text-Editor -->
+        <div id="visual-pane" class="flex-1 overflow-y-auto p-1.5 sm:p-6 flex justify-center bg-slate-100 dark:bg-slate-950">
+            <div class="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-sm sm:shadow-md border border-slate-200/90 dark:border-slate-800 p-3.5 sm:p-10 h-fit min-h-full select-text">
+                <!-- Editierbarer Bereich -->
+                <div id="visual-editor" contenteditable="true" spellcheck="true" aria-label="Textverarbeitungs-Editor"></div>
+            </div>
+        </div>
+
+        <!-- Rechte Spalte: Markdown / Rohdaten-Ansicht -->
+        <div id="markdown-pane" class="hidden flex-1 flex-col border-l border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 overflow-hidden">
+            <div class="bg-slate-800/90 px-3 py-1.5 text-[11px] font-mono text-slate-300 flex items-center justify-between border-b border-slate-700">
+                <span>MARKDOWN / ROHDATEN (LIVE-SYNC)</span>
+                <span class="text-emerald-400">Noto Sans Mono</span>
+            </div>
+            <textarea id="markdown-editor" spellcheck="false" 
+                class="flex-1 w-full bg-slate-900 text-slate-100 font-mono text-xs sm:text-sm p-3.5 sm:p-6 outline-none resize-none leading-relaxed select-text"
+                placeholder="# Überschrift 1&#10;&#10;Schreibe hier Markdown oder Programmier-Code mit ``` ..."></textarea>
+        </div>
+
+    </main>
+
+    <!-- MODAL: Code-Snippet komfortabel einfügen (Mobilfreundlich) -->
+    <div id="code-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden items-center justify-center p-3">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90dvh]">
+            <div class="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                    <h3 class="font-bold text-sm sm:text-base">Programmier-Code einfügen</h3>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4 space-y-3 overflow-y-auto">
+                <div class="flex items-center justify-between gap-2">
+                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Sprache:</label>
+                    <select id="modal-lang-select" class="text-xs rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2.5 py-1 outline-none">
+                        <option value="auto">✨ Automatisch erkennen</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="html">HTML / XML</option>
+                        <option value="css">CSS</option>
+                        <option value="java">Java</option>
+                        <option value="csharp">C#</option>
+                        <option value="cpp">C / C++</option>
+                        <option value="sql">SQL</option>
+                        <option value="json">JSON</option>
+                        <option value="bash">Bash / Terminal</option>
+                    </select>
+                </div>
+                <textarea id="modal-code-input" rows="7" 
+                    class="w-full rounded-lg bg-slate-950 text-emerald-300 font-mono text-xs sm:text-sm p-3 border border-slate-700 outline-none focus:border-blue-500"
+                    placeholder="// Programmier-Code hier einfügen...&#10;function halloWelt() {&#10;    console.log('Automatische Farbdarstellung!');&#10;}"></textarea>
+            </div>
+            <div class="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+                <button id="btn-cancel-modal" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Abbrechen</button>
+                <button id="btn-confirm-code" class="px-3.5 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition">Farbig einfügen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Kompaktes Navigator-Fenster (LibreOffice-Stil für Überschrift 1) -->
+    <div id="navigator-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-40 hidden items-start sm:items-center justify-center pt-14 sm:pt-0 p-3">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-xs w-full shadow-2xl overflow-hidden flex flex-col max-h-[70dvh]">
+            <!-- Navigator Kopfzeile -->
+            <div class="px-3.5 py-2 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                    </svg>
+                    <h3 class="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100">Navigator (Überschrift 1)</h3>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span id="navigator-count" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-semibold">0</span>
+                    <button id="btn-close-navigator" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md" title="Schließen">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- Kompakte Liste aller H1-Überschriften -->
+            <div id="navigator-list" class="p-1.5 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                <!-- Dynamisch gefüllt -->
+            </div>
+        </div>
+    </div>
+
+    <!-- KOMPAKTE TOAST BENACHRICHTIGUNG -->
+    <div id="toast" class="fixed bottom-9 right-3 left-3 sm:left-auto z-50 transform translate-y-16 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900/95 dark:bg-slate-800/95 text-white px-3.5 py-2 rounded-lg shadow-xl border border-slate-700 flex items-center justify-center sm:justify-start gap-2 text-xs">
+        <span id="toast-icon" class="text-emerald-400 font-bold">✓</span>
+        <span id="toast-msg">Aktion ausgeführt</span>
+    </div>
+
+    <!-- KOMPAKTE STATUSLEISTE UNTEN -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between gap-2 shrink-0 z-20">
+        <div class="flex items-center gap-2 truncate">
+            <span class="flex items-center gap-1.5 truncate">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <strong id="status-block" class="text-slate-700 dark:text-slate-200 truncate">Standard</strong>
+            </span>
+            <span class="hidden md:inline">|</span>
+            <span id="status-code-count" class="hidden md:inline">Code-Blöcke: 0</span>
+        </div>
+        <div class="flex items-center gap-2 font-mono shrink-0">
+            <span id="stat-words">0 W</span>
+            <span>•</span>
+            <span id="stat-chars">0 Z</span>
+            <span class="hidden sm:inline">•</span>
+            <span id="stat-lines" class="hidden sm:inline">0 Zeilen</span>
+        </div>
+    </footer>
+
+    <!-- HAUPTSKRIPT DER ANWENDUNG -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM-Referenzen
+            const visualEditor = document.getElementById('visual-editor');
+            const markdownEditor = document.getElementById('markdown-editor');
+            const visualPane = document.getElementById('visual-pane');
+            const markdownPane = document.getElementById('markdown-pane');
+            const docFilename = document.getElementById('doc-filename');
+            const fileInput = document.getElementById('file-input');
+            const dropOverlay = document.getElementById('drop-overlay');
+
+            // Formatvorlagen-Buttons
+            const btnTplP = document.getElementById('tpl-p');
+            const btnTplH1 = document.getElementById('tpl-h1');
+            const btnTplH2 = document.getElementById('tpl-h2');
+            const btnTplH3 = document.getElementById('tpl-h3');
+            const btnTplOl = document.getElementById('tpl-ol');
+            const btnTplUl = document.getElementById('tpl-ul');
+            const formatButtons = [btnTplP, btnTplH1, btnTplH2, btnTplH3, btnTplOl, btnTplUl];
+
+            // Weitere Toolbar-Elemente
+            const btnBold = document.getElementById('btn-bold');
+            const btnItalic = document.getElementById('btn-italic');
+            const codeLangSelect = document.getElementById('code-lang-select');
+            const btnInsertCode = document.getElementById('btn-insert-code');
+            const btnDetectCode = document.getElementById('btn-detect-code');
+
+            // Statusleiste
+            const statusBlock = document.getElementById('status-block');
+            const statusCodeCount = document.getElementById('status-code-count');
+            const statWords = document.getElementById('stat-words');
+            const statChars = document.getElementById('stat-chars');
+            const statLines = document.getElementById('stat-lines');
+
+            // Modal-Elemente
+            const codeModal = document.getElementById('code-modal');
+            const modalLangSelect = document.getElementById('modal-lang-select');
+            const modalCodeInput = document.getElementById('modal-code-input');
+            const btnCloseModal = document.getElementById('btn-close-modal');
+            const btnCancelModal = document.getElementById('btn-cancel-modal');
+            const btnConfirmCode = document.getElementById('btn-confirm-code');
+
+            // Navigator-Elemente
+            const btnNavigator = document.getElementById('btn-navigator');
+            const navigatorModal = document.getElementById('navigator-modal');
+            const btnCloseNavigator = document.getElementById('btn-close-navigator');
+            const navigatorList = document.getElementById('navigator-list');
+            const navigatorCount = document.getElementById('navigator-count');
+
+            let savedSelectionRange = null;
+            let isSyncing = false;
+            let currentViewMode = 'visual';
+
+            // =========================================================================
+            // 1. TURNDOWN (HTML -> MARKDOWN) & MARKED (MARKDOWN -> HTML) KONFIGURATION
+            // =========================================================================
+            const turndownService = new TurndownService({
+                headingStyle: 'atx',
+                bulletListMarker: '-',
+                codeBlockStyle: 'fenced'
+            });
+
+            // Spezielle Regel für Listeneinträge mit Überschrift-Formatvorlage (H1, H2, H3 in <ol>/<ul>)
+            turndownService.addRule('styledListItem', {
+                filter: function (node) {
+                    if (node.nodeName !== 'LI') return false;
+                    const tpl = node.getAttribute('data-tpl');
+                    const headingChild = node.querySelector('h1, h2, h3');
+                    return Boolean(tpl && ['H1', 'H2', 'H3'].includes(tpl)) || Boolean(headingChild);
+                },
+                replacement: function (content, node, options) {
+                    const tpl = (node.getAttribute('data-tpl') || (node.querySelector('h1, h2, h3') ? node.querySelector('h1, h2, h3').tagName : 'P')).toUpperCase();
+                    const cleanText = content.replace(/^#+\s*/, '').trim();
+                    const parent = node.parentNode;
+                    let prefix = options.bulletListMarker + ' ';
+                    if (parent && parent.nodeName === 'OL') {
+                        const start = parent.getAttribute('start');
+                        const index = Array.prototype.indexOf.call(parent.children, node);
+                        const num = (start ? Number(start) + index : index + 1);
+                        prefix = num + '. ';
+                    }
+                    if (tpl === 'H1') return '# ' + prefix + cleanText + '\n\n';
+                    if (tpl === 'H2') return '## ' + prefix + cleanText + '\n\n';
+                    if (tpl === 'H3') return '### ' + prefix + cleanText + '\n\n';
+                    return prefix + cleanText + '\n';
+                }
+            });
+
+            // Spezielle Regel für hervorgehobene Code-Blöcke (<pre><code class="language-xyz">)
+            turndownService.addRule('highlightedCodeBlock', {
+                filter: function (node) {
+                    return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
+                },
+                replacement: function (content, node) {
+                    const codeNode = node.firstChild;
+                    const langAttr = node.getAttribute('data-lang') || '';
+                    const classMatch = (codeNode.className || '').match(/language-(\S+)/);
+                    let lang = classMatch ? classMatch[1] : langAttr.toLowerCase();
+                    if (lang === 'auto' || lang === 'code' || lang === 'text') lang = '';
+                    const rawCode = codeNode.textContent.replace(/\n$/, '');
+                    return '\n\n```' + lang + '\n' + rawCode + '\n```\n\n';
+                }
+            });
+
+            marked.setOptions({
+                gfm: true,
+                breaks: true
+            });
+
+            // =========================================================================
+            // 2. SYNTAX-HIGHLIGHTING & AUTOMATISCHE CODE-ERKENNUNG
+            // =========================================================================
+            function highlightAllCodeBlocks(forceAutoDetect = false) {
+                const preBlocks = visualEditor.querySelectorAll('pre');
+                
+                preBlocks.forEach(pre => {
+                    let codeEl = pre.querySelector('code');
+                    if (!codeEl) {
+                        codeEl = document.createElement('code');
+                        codeEl.textContent = pre.textContent;
+                        pre.innerHTML = '';
+                        pre.appendChild(codeEl);
+                    }
+
+                    const rawCode = codeEl.textContent;
+                    const existingLangMatch = (codeEl.className || '').match(/language-([a-zA-Z0-9_-]+)/);
+                    let chosenLang = existingLangMatch ? existingLangMatch[1] : (pre.getAttribute('data-lang') || '');
+
+                    if (forceAutoDetect && codeLangSelect.value !== 'auto') {
+                        chosenLang = codeLangSelect.value;
+                    }
+
+                    if (chosenLang && chosenLang !== 'auto' && hljs.getLanguage(chosenLang)) {
+                        const result = hljs.highlight(rawCode, { language: chosenLang, ignoreIllegals: true });
+                        codeEl.innerHTML = result.value;
+                        codeEl.className = `hljs language-${chosenLang}`;
+                        pre.setAttribute('data-lang', chosenLang.toUpperCase());
+                    } else {
+                        const autoResult = hljs.highlightAuto(rawCode);
+                        const detectedLang = autoResult.language || 'code';
+                        codeEl.innerHTML = autoResult.value;
+                        codeEl.className = `hljs language-${detectedLang}`;
+                        pre.setAttribute('data-lang', detectedLang.toUpperCase());
+                    }
+                });
+
+                updateStats();
+            }
+
+            /**
+             * Erkennt getippte Markdown-Codeblöcke (```sprache ... ```) oder
+             * markierten Code direkt im visuellen Editor und wandelt sie um.
+             */
+            function detectAndConvertInlineMarkdownCode() {
+                const htmlContent = visualEditor.innerHTML;
+                const fenceRegex = /```([a-zA-Z0-9_-]*)\s*<br\s*\/?>([\s\S]*?)```/gi;
+
+                if (fenceRegex.test(htmlContent)) {
+                    visualEditor.innerHTML = htmlContent.replace(fenceRegex, (match, lang, innerHtml) => {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = innerHtml
+                            .replace(/<br\s*\/?>/gi, '\n')
+                            .replace(/<\/p>\s*<p>/gi, '\n')
+                            .replace(/<\/div>\s*<div>/gi, '\n');
+                        const cleanCode = tempDiv.textContent.trim();
+                        const langClass = lang ? `language-${lang.toLowerCase()}` : '';
+                        const dataLang = lang ? lang.toUpperCase() : 'AUTO';
+                        const escaped = escapeHtml(cleanCode);
+                        return `<pre data-lang="${dataLang}"><code class="${langClass}">${escaped}</code></pre>`;
+                    });
+                }
+
+                const paragraphs = Array.from(visualEditor.querySelectorAll('p, div'));
+                let inFence = false;
+                let fenceLang = '';
+                let collectedLines = [];
+                let nodesToRemove = [];
+
+                for (const p of paragraphs) {
+                    const txt = p.textContent.trim();
+                    if (!inFence && txt.startsWith('```')) {
+                        inFence = true;
+                        fenceLang = txt.slice(3).trim();
+                        collectedLines = [];
+                        nodesToRemove.push(p);
+                    } else if (inFence) {
+                        if (txt.endsWith('```')) {
+                            const lastLine = txt.slice(0, -3);
+                            if (lastLine) collectedLines.push(lastLine);
+                            
+                            const pre = document.createElement('pre');
+                            const code = document.createElement('code');
+                            if (fenceLang) {
+                                code.className = `language-${fenceLang.toLowerCase()}`;
+                                pre.setAttribute('data-lang', fenceLang.toUpperCase());
+                            }
+                            code.textContent = collectedLines.join('\n');
+                            pre.appendChild(code);
+
+                            p.parentNode.insertBefore(pre, nodesToRemove[0]);
+                            nodesToRemove.push(p);
+                            nodesToRemove.forEach(n => n.remove());
+
+                            inFence = false;
+                            nodesToRemove = [];
+                            collectedLines = [];
+                        } else {
+                            collectedLines.push(p.textContent);
+                            nodesToRemove.push(p);
+                        }
+                    }
+                }
+
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && !sel.isCollapsed && visualEditor.contains(sel.anchorNode)) {
+                    const selectedText = sel.toString().trim();
+                    if (selectedText.length > 0) {
+                        insertHighlightedCodeBlock(selectedText, codeLangSelect.value);
+                        showToast('Markierung als Code formatiert');
+                        return;
+                    }
+                }
+
+                highlightAllCodeBlocks(true);
+                syncVisualToMarkdown();
+                showToast('Code erkannt & farbig markiert');
+            }
+
+            // =========================================================================
+            // 3. FORMATIERUNGSVORLAGEN & NUMMERIERUNG (Kombinierbar für Std, H1, H2, H3, Listen)
+            // =========================================================================
+            function placeCursorAtEnd(el) {
+                if (!el) return;
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                range.collapse(false);
+                const sel = window.getSelection();
+                if (sel) {
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+
+            // Ermittelt das aktuelle <li>-Element, falls sich der Cursor in einer Liste befindet
+            function getCurrentListItem() {
+                const sel = window.getSelection();
+                if (!sel || sel.rangeCount === 0) return null;
+                let node = sel.anchorNode;
+                if (!node) return null;
+                if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+                while (node && node !== visualEditor) {
+                    if (node.tagName === 'LI') return node;
+                    node = node.parentNode;
+                }
+                return null;
+            }
+
+            // Ermittelt die Formatvorlage (P, H1, H2, H3) einer Zeile oder eines Listeneintrags
+            function getEffectiveTemplate(blockNode) {
+                if (!blockNode) return 'P';
+                const li = blockNode.tagName === 'LI' ? blockNode : blockNode.closest('li');
+                if (li) {
+                    const tplAttr = (li.getAttribute('data-tpl') || '').toUpperCase();
+                    if (['H1', 'H2', 'H3', 'P'].includes(tplAttr)) return tplAttr;
+                    const headingChild = li.querySelector('h1, h2, h3');
+                    if (headingChild) return headingChild.tagName.toUpperCase();
+                    return 'P';
+                }
+                if (['H1', 'H2', 'H3'].includes(blockNode.tagName)) {
+                    return blockNode.tagName;
+                }
+                return 'P';
+            }
+
+            // Setzt die Formatvorlage (P, H1, H2, H3) innerhalb eines <li>-Elements, sodass sich auch die Nummerierung anpasst
+            function setListItemTemplate(li, tpl) {
+                const upperTpl = (tpl || 'P').toUpperCase();
+                const existingHeading = li.querySelector('h1, h2, h3, p');
+                const innerHtml = existingHeading ? existingHeading.innerHTML : li.innerHTML;
+
+                if (['H1', 'H2', 'H3'].includes(upperTpl)) {
+                    li.setAttribute('data-tpl', upperTpl);
+                    const tag = upperTpl.toLowerCase();
+                    li.innerHTML = `<${tag}>${innerHtml}</${tag}>`;
+                    placeCursorAtEnd(li.firstElementChild || li);
+                } else {
+                    li.removeAttribute('data-tpl');
+                    li.innerHTML = innerHtml;
+                    placeCursorAtEnd(li);
+                }
+            }
+
+            // Nummeriert Überschriften-Listen (H1, H2, H3) im Dokument fortlaufend
+            function refreshHeadingListNumbering() {
+                let h1Count = 0;
+                let h2Count = 0;
+                let h3Count = 0;
+
+                Array.from(visualEditor.children).forEach(child => {
+                    if (child.tagName === 'H1') {
+                        h2Count = 0;
+                        h3Count = 0;
+                    } else if (child.tagName === 'H2') {
+                        h3Count = 0;
+                    } else if (child.tagName === 'OL') {
+                        const items = Array.from(child.children).filter(c => c.tagName === 'LI');
+                        if (items.length === 0) return;
+                        const firstTpl = getEffectiveTemplate(items[0]);
+                        const allSameHeading = ['H1', 'H2', 'H3'].includes(firstTpl) && items.every(li => getEffectiveTemplate(li) === firstTpl);
+
+                        if (allSameHeading) {
+                            if (firstTpl === 'H1') {
+                                child.setAttribute('start', String(h1Count + 1));
+                                h1Count += items.length;
+                                h2Count = 0;
+                                h3Count = 0;
+                            } else if (firstTpl === 'H2') {
+                                child.setAttribute('start', String(h2Count + 1));
+                                h2Count += items.length;
+                                h3Count = 0;
+                            } else if (firstTpl === 'H3') {
+                                child.setAttribute('start', String(h3Count + 1));
+                                h3Count += items.length;
+                            }
+                        } else {
+                            child.removeAttribute('start');
+                        }
+                    }
+                });
+            }
+
+            // Schaltet die Nummerierung (OL) oder Aufzählung (UL) unter Beibehaltung der Formatvorlage (Std, H1, H2, H3) um
+            function toggleListForCurrentBlock(listTag) {
+                const li = getCurrentListItem();
+                if (li) {
+                    const parentList = li.parentElement;
+                    const currentTpl = getEffectiveTemplate(li);
+
+                    if (parentList && parentList.tagName === listTag) {
+                        // Liste für diese Zeile aufheben, aber Formatvorlage (P, H1, H2, H3) beibehalten!
+                        const blockTag = ['H1', 'H2', 'H3'].includes(currentTpl) ? currentTpl.toLowerCase() : 'p';
+                        const newBlock = document.createElement(blockTag);
+                        const innerTarget = li.querySelector('h1, h2, h3, p') || li;
+                        newBlock.innerHTML = innerTarget.innerHTML || '<br>';
+
+                        const items = Array.from(parentList.children).filter(c => c.tagName === 'LI');
+                        const idx = items.indexOf(li);
+
+                        if (items.length === 1) {
+                            parentList.replaceWith(newBlock);
+                        } else if (idx === 0) {
+                            parentList.before(newBlock);
+                            li.remove();
+                        } else if (idx === items.length - 1) {
+                            parentList.after(newBlock);
+                            li.remove();
+                        } else {
+                            const afterList = document.createElement(parentList.tagName.toLowerCase());
+                            items.slice(idx + 1).forEach(afterLi => afterList.appendChild(afterLi));
+                            li.remove();
+                            parentList.after( newBlock, afterList );
+                        }
+                        placeCursorAtEnd(newBlock);
+                    } else if (parentList) {
+                        // Zwischen OL und UL wechseln, Formatvorlage (P, H1, H2, H3) aller Einträge behalten
+                        const newList = document.createElement(listTag.toLowerCase());
+                        while (parentList.firstChild) {
+                            newList.appendChild(parentList.firstChild);
+                        }
+                        parentList.replaceWith(newList);
+                        placeCursorAtEnd(li.querySelector('h1, h2, h3, p') || li);
+                    }
+                    return;
+                }
+
+                // Aktueller Block ist noch keine Liste (z. B. H1, H2, H3 oder P)
+                let block = getCurrentBlockElement();
+                if (!block || block.tagName === 'PRE') {
+                    document.execCommand(listTag === 'OL' ? 'insertOrderedList' : 'insertUnorderedList', false, null);
+                    return;
+                }
+
+                const tpl = getEffectiveTemplate(block);
+                const listEl = document.createElement(listTag.toLowerCase());
+                const newLi = document.createElement('li');
+                newLi.innerHTML = block.innerHTML || '<br>';
+                setListItemTemplate(newLi, tpl);
+                listEl.appendChild(newLi);
+
+                // Falls direkt davor oder danach eine gleichartige Liste liegt (für Standard-Absätze), zusammenführen
+                const prev = block.previousElementSibling;
+                if (prev && prev.tagName === listTag && tpl === 'P' && !prev.querySelector('li[data-tpl]')) {
+                    prev.appendChild(newLi);
+                    block.remove();
+                    placeCursorAtEnd(newLi);
+                } else {
+                    block.replaceWith(listEl);
+                    placeCursorAtEnd(newLi.querySelector('h1, h2, h3') || newLi);
+                }
+            }
+
+            function applyTemplate(templateType) {
+                visualEditor.focus();
+
+                if (templateType === 'OL' || templateType === 'UL') {
+                    toggleListForCurrentBlock(templateType);
+                } else {
+                    const li = getCurrentListItem();
+                    if (li) {
+                        // Wenn Zeile bereits nummeriert/aufgezählt ist: Formatvorlage der Zeile + Nummer anpassen!
+                        setListItemTemplate(li, templateType);
+                    } else {
+                        document.execCommand('formatBlock', false, `<${templateType}>`);
+                    }
+                }
+
+                refreshHeadingListNumbering();
+                updateActiveFormatState();
+                syncVisualToMarkdown();
+                updateStats();
+            }
+
+            btnTplP.addEventListener('click', () => applyTemplate('P'));
+            btnTplH1.addEventListener('click', () => applyTemplate('H1'));
+            btnTplH2.addEventListener('click', () => applyTemplate('H2'));
+            btnTplH3.addEventListener('click', () => applyTemplate('H3'));
+            btnTplOl.addEventListener('click', () => applyTemplate('OL'));
+            btnTplUl.addEventListener('click', () => applyTemplate('UL'));
+
+            btnBold.addEventListener('click', () => {
+                visualEditor.focus();
+                document.execCommand('bold', false, null);
+                syncVisualToMarkdown();
+            });
+
+            btnItalic.addEventListener('click', () => {
+                visualEditor.focus();
+                document.execCommand('italic', false, null);
+                syncVisualToMarkdown();
+            });
+
+            function getCurrentBlockElement() {
+                const sel = window.getSelection();
+                if (!sel || sel.rangeCount === 0) return null;
+                let node = sel.anchorNode;
+                if (!node) return null;
+                if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+
+                while (node && node !== visualEditor) {
+                    if (['P', 'H1', 'H2', 'H3', 'UL', 'OL', 'LI', 'PRE'].includes(node.tagName)) {
+                        return node;
+                    }
+                    node = node.parentNode;
+                }
+                return null;
+            }
+
+            function updateActiveFormatState() {
+                formatButtons.forEach(btn => btn.classList.remove('active'));
+                const block = getCurrentBlockElement();
+
+                if (!block) {
+                    btnTplP.classList.add('active');
+                    statusBlock.textContent = 'Standard';
+                    return;
+                }
+
+                if (block.tagName === 'PRE') {
+                    const lang = block.getAttribute('data-lang') || 'CODE';
+                    statusBlock.textContent = `Code (${lang})`;
+                    return;
+                }
+
+                const li = getCurrentListItem();
+                const tpl = getEffectiveTemplate(li || block);
+
+                const tplNames = {
+                    'P': 'Standard',
+                    'H1': 'Überschrift 1',
+                    'H2': 'Überschrift 2',
+                    'H3': 'Überschrift 3'
+                };
+
+                // Aktive Formatvorlage (Std, H1, H2, H3) hervorheben
+                if (tpl === 'H1') btnTplH1.classList.add('active');
+                else if (tpl === 'H2') btnTplH2.classList.add('active');
+                else if (tpl === 'H3') btnTplH3.classList.add('active');
+                else btnTplP.classList.add('active');
+
+                // Falls zusätzlich Nummerierung oder Aufzählung aktiv ist, auch diesen Button hervorheben
+                if (li && li.parentElement) {
+                    const listTag = li.parentElement.tagName;
+                    if (listTag === 'OL') {
+                        btnTplOl.classList.add('active');
+                        statusBlock.textContent = `${tplNames[tpl]} + Nummerierung`;
+                    } else if (listTag === 'UL') {
+                        btnTplUl.classList.add('active');
+                        statusBlock.textContent = `${tplNames[tpl]} + Liste`;
+                    } else {
+                        statusBlock.textContent = tplNames[tpl];
+                    }
+                } else {
+                    statusBlock.textContent = tplNames[tpl];
+                }
+            }
+
+            // Auf Android-Geräten aktualisiert selectionchange den Format-Status zuverlässig bei Touch
+            document.addEventListener('selectionchange', () => {
+                if (document.activeElement === visualEditor) {
+                    updateActiveFormatState();
+                }
+            });
+
+            // =========================================================================
+            // 4. CODE-BLOCK EINFÜGEN & MODAL-STEUERUNG
+            // =========================================================================
+            function insertHighlightedCodeBlock(codeString, lang = 'auto') {
+                visualEditor.focus();
+                if (savedSelectionRange) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelectionRange);
+                    savedSelectionRange = null;
+                }
+
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+                code.textContent = codeString;
+
+                if (lang && lang !== 'auto') {
+                    code.className = `language-${lang}`;
+                    pre.setAttribute('data-lang', lang.toUpperCase());
+                } else {
+                    pre.setAttribute('data-lang', 'AUTO');
+                }
+
+                pre.appendChild(code);
+
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && visualEditor.contains(sel.anchorNode)) {
+                    const range = sel.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(pre);
+
+                    const nextP = document.createElement('p');
+                    nextP.innerHTML = '<br>';
+                    pre.insertAdjacentElement('afterend', nextP);
+
+                    const newRange = document.createRange();
+                    newRange.setStart(nextP, 0);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                } else {
+                    visualEditor.appendChild(pre);
+                    const nextP = document.createElement('p');
+                    nextP.innerHTML = '<br>';
+                    visualEditor.appendChild(nextP);
+                }
+
+                highlightAllCodeBlocks();
+                syncVisualToMarkdown();
+            }
+
+            btnInsertCode.addEventListener('click', () => {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && visualEditor.contains(sel.anchorNode)) {
+                    savedSelectionRange = sel.getRangeAt(0).cloneRange();
+                    const selectedText = sel.toString().trim();
+                    if (selectedText.length > 0) {
+                        insertHighlightedCodeBlock(selectedText, codeLangSelect.value);
+                        showToast('Als Code-Block formatiert');
+                        return;
+                    }
+                }
+                modalLangSelect.value = codeLangSelect.value;
+                modalCodeInput.value = '';
+                codeModal.classList.remove('hidden');
+                codeModal.classList.add('flex');
+                setTimeout(() => modalCodeInput.focus(), 50);
+            });
+
+            function closeCodeModal() {
+                codeModal.classList.add('hidden');
+                codeModal.classList.remove('flex');
+            }
+
+            btnCloseModal.addEventListener('click', closeCodeModal);
+            btnCancelModal.addEventListener('click', closeCodeModal);
+            btnConfirmCode.addEventListener('click', () => {
+                const codeText = modalCodeInput.value;
+                if (codeText.trim().length > 0) {
+                    insertHighlightedCodeBlock(codeText, modalLangSelect.value);
+                    showToast('Code eingefügt & hervorgehoben');
+                }
+                closeCodeModal();
+            });
+
+            btnDetectCode.addEventListener('click', detectAndConvertInlineMarkdownCode);
+
+            codeLangSelect.addEventListener('change', () => {
+                const block = getCurrentBlockElement();
+                if (block && block.tagName === 'PRE') {
+                    const codeEl = block.querySelector('code');
+                    if (codeEl) {
+                        const newLang = codeLangSelect.value;
+                        codeEl.className = newLang === 'auto' ? '' : `language-${newLang}`;
+                        block.setAttribute('data-lang', newLang.toUpperCase());
+                        highlightAllCodeBlocks();
+                        syncVisualToMarkdown();
+                        updateActiveFormatState();
+                    }
+                }
+            });
+
+            // =========================================================================
+            // 5. SYNCHRONISIERUNG ZWISCHEN VISUELLEM EDITOR UND MARKDOWN
+            // =========================================================================
+            function syncVisualToMarkdown() {
+                if (isSyncing) return;
+                isSyncing = true;
+                try {
+                    const md = turndownService.turndown(visualEditor.innerHTML);
+                    markdownEditor.value = md;
+                } catch (err) {
+                    console.error('Markdown-Konvertierungsfehler:', err);
+                }
+                isSyncing = false;
+            }
+
+            function upgradeNumberedHeadingsInDom() {
+                const headings = Array.from(visualEditor.querySelectorAll('h1, h2, h3'));
+                headings.forEach(h => {
+                    if (h.closest('li')) return;
+                    const text = h.textContent || '';
+                    const match = text.match(/^(\d+)\.\s+([\s\S]*)$/);
+                    if (match) {
+                        const tpl = h.tagName.toUpperCase();
+                        // Entferne führende "1. " aus dem ersten Textknoten und wandle in nummerierte Überschrift um
+                        const walker = document.createTreeWalker(h, NodeFilter.SHOW_TEXT, null);
+                        const firstTextNode = walker.nextNode();
+                        if (firstTextNode) {
+                            firstTextNode.nodeValue = firstTextNode.nodeValue.replace(/^\s*\d+\.\s+/, '');
+                        }
+                        const ol = document.createElement('ol');
+                        const li = document.createElement('li');
+                        li.setAttribute('data-tpl', tpl);
+                        const innerH = document.createElement(tpl.toLowerCase());
+                        innerH.innerHTML = h.innerHTML;
+                        li.appendChild(innerH);
+                        ol.appendChild(li);
+                        h.replaceWith(ol);
+                    }
+                });
+                refreshHeadingListNumbering();
+            }
+
+            function renderMarkdownToVisual(mdText) {
+                if (isSyncing) return;
+                isSyncing = true;
+                try {
+                    const rawHtml = marked.parse(mdText);
+                    visualEditor.innerHTML = rawHtml;
+                    upgradeNumberedHeadingsInDom();
+                    highlightAllCodeBlocks();
+                } catch (err) {
+                    console.error('HTML-Renderfehler:', err);
+                }
+                isSyncing = false;
+                updateStats();
+            }
+
+            visualEditor.addEventListener('input', () => {
+                refreshHeadingListNumbering();
+                syncVisualToMarkdown();
+                updateStats();
+            });
+
+            visualEditor.addEventListener('keyup', (e) => {
+                updateActiveFormatState();
+                if (e.key === 'Enter') {
+                    const html = visualEditor.innerHTML;
+                    if (html.includes('```') && (html.match(/```/g) || []).length >= 2) {
+                        detectAndConvertInlineMarkdownCode();
+                    }
+                }
+            });
+
+            visualEditor.addEventListener('mouseup', updateActiveFormatState);
+
+            visualEditor.addEventListener('keydown', (e) => {
+                const block = getCurrentBlockElement();
+                if (block && block.tagName === 'PRE') {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        document.execCommand('insertText', false, '    ');
+                    } else if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        document.execCommand('insertLineBreak');
+                    }
+                }
+            });
+
+            markdownEditor.addEventListener('input', () => {
+                renderMarkdownToVisual(markdownEditor.value);
+            });
+
+            // =========================================================================
+            // 6. DATEI ÖFFNEN & SPEICHERN (.TXT, .MD und .ODT)
+            // =========================================================================
+            document.getElementById('btn-open').addEventListener('click', () => {
+                fileInput.value = '';
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) loadFileIntoEditor(file);
+            });
+
+            // Entpackt eine Datei aus einem ZIP/ODT-ArrayBuffer (JSZip oder nativer DecompressionStream/Store-Fallback)
+            async function extractXmlFromOdtBuffer(arrayBuffer, targetPath) {
+                if (typeof JSZip !== 'undefined') {
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+                    const entry = zip.file(targetPath);
+                    if (entry) return await entry.async('string');
+                }
+
+                // Nativer Fallback-Unzipper (unterstützt STORE [0] und DEFLATE [8] via DecompressionStream)
+                const bytes = new Uint8Array(arrayBuffer);
+                const view = new DataView(arrayBuffer);
+                const decoder = new TextDecoder('utf-8');
+
+                let eocdOffset = -1;
+                for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+                    if (view.getUint32(i, true) === 0x06054b50) {
+                        eocdOffset = i;
+                        break;
+                    }
+                }
+                if (eocdOffset === -1) throw new Error('Ungültiges ZIP/ODT-Archiv');
+
+                const totalEntries = view.getUint16(eocdOffset + 10, true);
+                let cdOffset = view.getUint32(eocdOffset + 16, true);
+
+                for (let i = 0; i < totalEntries; i++) {
+                    if (view.getUint32(cdOffset, true) !== 0x02014b50) break;
+                    const compressionMethod = view.getUint16(cdOffset + 10, true);
+                    const compressedSize = view.getUint32(cdOffset + 20, true);
+                    const fileNameLen = view.getUint16(cdOffset + 28, true);
+                    const extraLen = view.getUint16(cdOffset + 30, true);
+                    const commentLen = view.getUint16(cdOffset + 32, true);
+                    const localHeaderOffset = view.getUint32(cdOffset + 42, true);
+
+                    const fileName = decoder.decode(bytes.subarray(cdOffset + 46, cdOffset + 46 + fileNameLen));
+                    if (fileName === targetPath) {
+                        const localNameLen = view.getUint16(localHeaderOffset + 26, true);
+                        const localExtraLen = view.getUint16(localHeaderOffset + 28, true);
+                        const dataStart = localHeaderOffset + 30 + localNameLen + localExtraLen;
+                        const compressedData = bytes.subarray(dataStart, dataStart + compressedSize);
+
+                        if (compressionMethod === 0) {
+                            return decoder.decode(compressedData);
+                        } else if (compressionMethod === 8 && typeof DecompressionStream !== 'undefined') {
+                            const ds = new DecompressionStream('deflate-raw');
+                            const writer = ds.writable.getWriter();
+                            writer.write(compressedData);
+                            writer.close();
+                            const resp = new Response(ds.readable);
+                            const decompressedBuf = await resp.arrayBuffer();
+                            return decoder.decode(decompressedBuf);
+                        }
+                    }
+                    cdOffset += 46 + fileNameLen + extraLen + commentLen;
+                }
+                return null;
+            }
+
+            // Analysiert die Stil-Definitionen in styles.xml und content.xml eines ODT-Dokuments
+            function collectOdtStyleMap(xmlDoc) {
+                const styleMap = {};
+                if (!xmlDoc) return styleMap;
+
+                const styleNodes = xmlDoc.getElementsByTagName('style:style');
+                for (let i = 0; i < styleNodes.length; i++) {
+                    const s = styleNodes[i];
+                    const name = s.getAttribute('style:name');
+                    if (!name) continue;
+
+                    const parentName = s.getAttribute('style:parent-style-name') || '';
+                    const displayName = s.getAttribute('style:display-name') || '';
+                    const outlineLevel = s.getAttribute('style:default-outline-level') || '';
+
+                    let bold = false;
+                    let italic = false;
+                    let monospace = false;
+                    let isCodeBlock = false;
+                    let isCodeHeader = false;
+                    let headingLevel = 0;
+
+                    if (outlineLevel === '1' || /^(Heading_20_1|Heading 1|Überschrift 1)$/i.test(name) || /^(Heading 1|Überschrift 1)$/i.test(displayName)) {
+                        headingLevel = 1;
+                    } else if (outlineLevel === '2' || /^(Heading_20_2|Heading 2|Überschrift 2)$/i.test(name) || /^(Heading 2|Überschrift 2)$/i.test(displayName)) {
+                        headingLevel = 2;
+                    } else if (outlineLevel === '3' || /^(Heading_20_3|Heading 3|Überschrift 3)$/i.test(name) || /^(Heading 3|Überschrift 3)$/i.test(displayName)) {
+                        headingLevel = 3;
+                    }
+
+                    if (name === 'Code_Block' || /code_block|preformatted|vorformatiert/i.test(name) || /code_block|preformatted/i.test(parentName)) {
+                        isCodeBlock = true;
+                    }
+                    if (name === 'Code_Header') {
+                        isCodeHeader = true;
+                    }
+                    if (name === 'T_InlineCode') {
+                        monospace = true;
+                    }
+
+                    const textProps = s.getElementsByTagName('style:text-properties')[0];
+                    if (textProps) {
+                        const fw = textProps.getAttribute('fo:font-weight') || textProps.getAttribute('style:font-weight-asian') || '';
+                        const fs = textProps.getAttribute('fo:font-style') || textProps.getAttribute('style:font-style-asian') || '';
+                        const fn = textProps.getAttribute('style:font-name') || textProps.getAttribute('fo:font-family') || '';
+
+                        if (fw === 'bold' || Number(fw) >= 600) bold = true;
+                        if (fs === 'italic' || fs === 'oblique') italic = true;
+                        if (/mono|courier|consolas|fira code|jetbrains/i.test(fn)) monospace = true;
+                    }
+
+                    styleMap[name] = { parentName, headingLevel, bold, italic, monospace, isCodeBlock, isCodeHeader };
+                }
+
+                // Eltern-Stile (z. B. Heading_20_1 -> abgeleiteter automatischer Stil P1) vererben
+                Object.keys(styleMap).forEach(key => {
+                    const st = styleMap[key];
+                    let currParent = st.parentName;
+                    let depth = 0;
+                    while (currParent && styleMap[currParent] && depth < 5) {
+                        const p = styleMap[currParent];
+                        if (!st.headingLevel && p.headingLevel) st.headingLevel = p.headingLevel;
+                        if (p.bold) st.bold = true;
+                        if (p.italic) st.italic = true;
+                        if (p.monospace) st.monospace = true;
+                        if (p.isCodeBlock) st.isCodeBlock = true;
+                        if (p.isCodeHeader) st.isCodeHeader = true;
+                        currParent = p.parentName;
+                        depth++;
+                    }
+                });
+
+                // Zusätzlich Listen-Stile (<text:list-style>) auswerten (Geordnet vs. Ungeordnet)
+                const listStyleNodes = xmlDoc.getElementsByTagName('text:list-style');
+                for (let i = 0; i < listStyleNodes.length; i++) {
+                    const ls = listStyleNodes[i];
+                    const name = ls.getAttribute('style:name');
+                    if (!name) continue;
+                    const hasNumberLevel = ls.getElementsByTagName('text:list-level-style-number').length > 0;
+                    const isOrderedName = /^(L_Number|Numbering|Nummerierung)/i.test(name);
+                    styleMap[name] = {
+                        ...(styleMap[name] || {}),
+                        isOrderedList: hasNumberLevel || isOrderedName
+                    };
+                }
+
+                return styleMap;
+            }
+
+            // Konvertiert ODF-Inline-Elemente (<text:span>, <text:s>, <text:tab>, <text:line-break>, <text:a>) in HTML
+            function parseOdtInlineNodes(parentNode, styleMap, rawTextMode = false) {
+                let result = '';
+                parentNode.childNodes.forEach(child => {
+                    if (child.nodeType === Node.TEXT_NODE) {
+                        result += rawTextMode ? child.nodeValue : escapeHtml(child.nodeValue);
+                    } else if (child.nodeType === Node.ELEMENT_NODE) {
+                        const localName = child.localName || child.nodeName.replace(/^.*:/, '');
+                        if (localName === 's') {
+                            const count = parseInt(child.getAttribute('text:c') || '1', 10);
+                            const spaces = ' '.repeat(Math.max(1, count));
+                            result += rawTextMode ? spaces : spaces;
+                        } else if (localName === 'tab') {
+                            result += '    ';
+                        } else if (localName === 'line-break') {
+                            result += rawTextMode ? '\n' : '<br>';
+                        } else if (localName === 'span') {
+                            const styleName = child.getAttribute('text:style-name') || '';
+                            const st = styleMap[styleName] || {};
+                            const inner = parseOdtInlineNodes(child, styleMap, rawTextMode);
+
+                            if (rawTextMode) {
+                                result += inner;
+                            } else if (st.monospace || styleName === 'T_InlineCode') {
+                                result += `<code>${inner}</code>`;
+                            } else if ((st.bold && st.italic) || styleName === 'T_BoldItalic') {
+                                result += `<strong><em>${inner}</em></strong>`;
+                            } else if (st.bold || styleName === 'T_Bold') {
+                                result += `<strong>${inner}</strong>`;
+                            } else if (st.italic || styleName === 'T_Italic') {
+                                result += `<em>${inner}</em>`;
+                            } else {
+                                result += inner;
+                            }
+                        } else {
+                            result += parseOdtInlineNodes(child, styleMap, rawTextMode);
+                        }
+                    }
+                });
+                return result;
+            }
+
+            // Lädt und konvertiert eine LibreOffice Writer (.odt) Datei in den visuellen Editor
+            async function loadOdtFileIntoEditor(file) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const contentXmlStr = await extractXmlFromOdtBuffer(arrayBuffer, 'content.xml');
+                    if (!contentXmlStr) {
+                        throw new Error('content.xml konnte in der ODT-Datei nicht gelesen werden.');
+                    }
+                    const stylesXmlStr = await extractXmlFromOdtBuffer(arrayBuffer, 'styles.xml');
+
+                    const parser = new DOMParser();
+                    const contentDoc = parser.parseFromString(contentXmlStr, 'application/xml');
+                    const stylesDoc = stylesXmlStr ? parser.parseFromString(stylesXmlStr, 'application/xml') : null;
+
+                    const styleMap = {
+                        ...collectOdtStyleMap(stylesDoc),
+                        ...collectOdtStyleMap(contentDoc)
+                    };
+
+                    const officeText = contentDoc.getElementsByTagName('office:text')[0];
+                    if (!officeText) {
+                        throw new Error('Kein Textkörper (office:text) in der ODT-Datei gefunden.');
+                    }
+
+                    const htmlBlocks = [];
+                    let pendingCodeLang = null;
+                    let pendingCodeLines = [];
+
+                    function flushPendingCodeBlock() {
+                        if (pendingCodeLines.length > 0) {
+                            const lang = (pendingCodeLang || 'AUTO').toUpperCase();
+                            const langClass = lang !== 'AUTO' && lang !== 'CODE' ? `language-${lang.toLowerCase()}` : '';
+                            const codeText = escapeHtml(pendingCodeLines.join('\n'));
+                            htmlBlocks.push(`<pre data-lang="${escapeHtml(lang)}"><code class="${langClass}">${codeText}</code></pre>`);
+                            pendingCodeLines = [];
+                            pendingCodeLang = null;
+                        }
+                    }
+
+                    function processOdtContainer(containerNode) {
+                        Array.from(containerNode.childNodes).forEach(node => {
+                            if (node.nodeType !== Node.ELEMENT_NODE) return;
+                            const localName = node.localName || node.nodeName.replace(/^.*:/, '');
+                            const styleName = node.getAttribute('text:style-name') || '';
+                            const st = styleMap[styleName] || {};
+
+                            // 1. Code-Header / Code-Block aus NotoWrite oder LibreOffice "Vorformatiert"
+                            if (localName === 'p' && (st.isCodeHeader || styleName === 'Code_Header')) {
+                                flushPendingCodeBlock();
+                                const rawHeader = parseOdtInlineNodes(node, styleMap, true).trim();
+                                const match = rawHeader.match(/^\[(.+)\]$/);
+                                pendingCodeLang = match ? match[1] : 'AUTO';
+                                return;
+                            }
+
+                            if (localName === 'p' && (st.isCodeBlock || styleName === 'Code_Block')) {
+                                const codeLine = parseOdtInlineNodes(node, styleMap, true);
+                                pendingCodeLines.push(codeLine);
+                                return;
+                            }
+
+                            // Falls zuvor ein Code-Block gesammelt wurde, jetzt abschließen
+                            flushPendingCodeBlock();
+
+                            // 2. Überschriften (<text:h> oder Absatz mit Überschrift-Stil)
+                            if (localName === 'h' || (localName === 'p' && st.headingLevel > 0)) {
+                                const levelAttr = parseInt(node.getAttribute('text:outline-level') || st.headingLevel || '1', 10);
+                                const level = Math.min(3, Math.max(1, levelAttr));
+                                const innerHtml = parseOdtInlineNodes(node, styleMap, false);
+                                if (innerHtml.trim()) {
+                                    htmlBlocks.push(`<h${level}>${innerHtml}</h${level}>`);
+                                }
+                                return;
+                            }
+
+                            // 3. Listen (<text:list> – Geordnete Liste <ol> oder Ungeordnete Liste <ul> inkl. Überschrift-Vorlagen)
+                            if (localName === 'list') {
+                                const listItems = [];
+                                const isOrdered = Boolean(
+                                    (st && st.isOrderedList) ||
+                                    /^(L_Number|Numbering|Nummerierung)/i.test(styleName)
+                                );
+                                let listLevelTpl = '';
+                                if (/H1$/i.test(styleName)) listLevelTpl = 'H1';
+                                else if (/H2$/i.test(styleName)) listLevelTpl = 'H2';
+                                else if (/H3$/i.test(styleName)) listLevelTpl = 'H3';
+
+                                Array.from(node.childNodes).forEach(li => {
+                                    if (li.nodeType !== Node.ELEMENT_NODE) return;
+                                    const liName = li.localName || li.nodeName.replace(/^.*:/, '');
+                                    if (liName === 'list-item') {
+                                        const itemParts = [];
+                                        let itemTpl = listLevelTpl;
+
+                                        Array.from(li.childNodes).forEach(pNode => {
+                                            if (pNode.nodeType === Node.ELEMENT_NODE) {
+                                                const pLocal = pNode.localName || pNode.nodeName.replace(/^.*:/, '');
+                                                const pStyleName = pNode.getAttribute('text:style-name') || '';
+                                                const pSt = styleMap[pStyleName] || {};
+                                                if (pLocal === 'h' || pSt.headingLevel > 0) {
+                                                    const lvl = Math.min(3, Math.max(1, parseInt(pNode.getAttribute('text:outline-level') || pSt.headingLevel || '1', 10)));
+                                                    itemTpl = `H${lvl}`;
+                                                }
+                                                itemParts.push(parseOdtInlineNodes(pNode, styleMap, false));
+                                            }
+                                        });
+                                        const liHtml = itemParts.join('<br>').trim();
+                                        if (liHtml) {
+                                            if (['H1', 'H2', 'H3'].includes(itemTpl)) {
+                                                const hTag = itemTpl.toLowerCase();
+                                                listItems.push(`<li data-tpl="${itemTpl}"><${hTag}>${liHtml}</${hTag}></li>`);
+                                            } else {
+                                                listItems.push(`<li>${liHtml}</li>`);
+                                            }
+                                        }
+                                    }
+                                });
+                                if (listItems.length > 0) {
+                                    const listTag = isOrdered ? 'ol' : 'ul';
+                                    htmlBlocks.push(`<${listTag}>${listItems.join('')}</${listTag}>`);
+                                }
+                                return;
+                            }
+
+                            // 4. Tabellen oder Sektionen rekursiv durchlaufen
+                            if (localName === 'section' || localName === 'table' || localName === 'table-row' || localName === 'table-cell') {
+                                processOdtContainer(node);
+                                return;
+                            }
+
+                            // 5. Normale Textabsätze (<text:p>)
+                            if (localName === 'p') {
+                                const innerHtml = parseOdtInlineNodes(node, styleMap, false);
+                                if (innerHtml.trim()) {
+                                    htmlBlocks.push(`<p>${innerHtml}</p>`);
+                                }
+                            }
+                        });
+                    }
+
+                    processOdtContainer(officeText);
+                    flushPendingCodeBlock();
+
+                    visualEditor.innerHTML = htmlBlocks.join('') || '<p><br></p>';
+                    refreshHeadingListNumbering();
+                    highlightAllCodeBlocks();
+                    syncVisualToMarkdown();
+                    updateActiveFormatState();
+                    updateStats();
+                    showToast(`"${file.name}" geöffnet`);
+                } catch (err) {
+                    console.error('ODT-Importfehler:', err);
+                    showToast('Fehler beim Öffnen der ODT-Datei');
+                }
+            }
+
+            function loadFileIntoEditor(file) {
+                const baseName = file.name.replace(/\.(md|markdown|txt|odt)$/i, '');
+                docFilename.value = baseName || 'Dokument';
+
+                if (/\.odt$/i.test(file.name) || file.type === 'application/vnd.oasis.opendocument.text') {
+                    loadOdtFileIntoEditor(file);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result || '';
+                    const isMarkdown = /\.(md|markdown)$/i.test(file.name);
+
+                    if (isMarkdown) {
+                        markdownEditor.value = content;
+                        renderMarkdownToVisual(content);
+                        showToast(`"${file.name}" geöffnet`);
+                    } else {
+                        const hasMarkdownFeatures = /(^#{1,3}\s|```|^-\s|\*\s|^\d+\.\s)/m.test(content);
+                        if (hasMarkdownFeatures) {
+                            markdownEditor.value = content;
+                            renderMarkdownToVisual(content);
+                        } else {
+                            const paragraphs = content.split(/\r?\n\r?\n/);
+                            const htmlParts = paragraphs.map(block => {
+                                const trimmed = block.trim();
+                                if (!trimmed) return '';
+                                if (looksLikeProgrammingCode(trimmed)) {
+                                    const escaped = escapeHtml(trimmed);
+                                    return `<pre data-lang="AUTO"><code>${escaped}</code></pre>`;
+                                }
+                                const escapedLines = escapeHtml(trimmed).replace(/\r?\n/g, '<br>');
+                                return `<p>${escapedLines}</p>`;
+                            });
+                            visualEditor.innerHTML = htmlParts.join('') || '<p><br></p>';
+                            highlightAllCodeBlocks();
+                            syncVisualToMarkdown();
+                        }
+                        showToast(`"${file.name}" geöffnet`);
+                    }
+                    updateStats();
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            function looksLikeProgrammingCode(text) {
+                const lines = text.split(/\r?\n/);
+                if (lines.length < 2) return false;
+                const codeIndicators = [
+                    /^(function|const|let|var|import|export|class|def|public|private|if|for|while|return)\b/m,
+                    /[{};]\s*$/m,
+                    /=>|===|!==|\+=|console\.log|print\(|SELECT\s+.*\s+FROM/i,
+                    /^<\/?[a-z][\s\S]*>/i
+                ];
+                let score = 0;
+                codeIndicators.forEach(regex => {
+                    if (regex.test(text)) score++;
+                });
+                return score >= 2;
+            }
+
+            function escapeHtml(str) {
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+            function escapeXml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&apos;');
+            }
+
+            // Konvertiert Text mit Mehrfach-Leerzeichen und Tabs in ODF-konformes XML (<text:s/>, <text:tab/>)
+            function formatOdfText(text) {
+                const escaped = escapeXml(text);
+                return escaped
+                    .replace(/\t/g, '<text:tab/>')
+                    .replace(/ {2,}/g, (match) => ' ' + `<text:s text:c="${match.length - 1}"/>`);
+            }
+
+            // Verarbeitet Inline-Knoten (Fett, Kursiv, Inline-Code, Zeilenumbrüche) für ODT
+            function serializeInlineNodesToOdf(parentNode) {
+                let xml = '';
+                parentNode.childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        xml += formatOdfText(node.nodeValue);
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        const tag = node.tagName.toUpperCase();
+                        if (tag === 'BR') {
+                            xml += '<text:line-break/>';
+                        } else if (tag === 'STRONG' || tag === 'B') {
+                            const hasItalic = node.querySelector('em, i');
+                            if (hasItalic && node.childNodes.length === 1) {
+                                xml += `<text:span text:style-name="T_BoldItalic">${serializeInlineNodesToOdf(hasItalic)}</text:span>`;
+                            } else {
+                                xml += `<text:span text:style-name="T_Bold">${serializeInlineNodesToOdf(node)}</text:span>`;
+                            }
+                        } else if (tag === 'EM' || tag === 'I') {
+                            const hasBold = node.querySelector('strong, b');
+                            if (hasBold && node.childNodes.length === 1) {
+                                xml += `<text:span text:style-name="T_BoldItalic">${serializeInlineNodesToOdf(hasBold)}</text:span>`;
+                            } else {
+                                xml += `<text:span text:style-name="T_Italic">${serializeInlineNodesToOdf(node)}</text:span>`;
+                            }
+                        } else if (tag === 'CODE') {
+                            xml += `<text:span text:style-name="T_InlineCode">${formatOdfText(node.textContent)}</text:span>`;
+                        } else {
+                            xml += serializeInlineNodesToOdf(node);
+                        }
+                    }
+                });
+                return xml;
+            }
+
+            // Erzeugt den ODF-Body aus dem aktuellen Inhalt des visuellen Editors
+            function buildOdtBodyXml() {
+                if (currentViewMode === 'markdown') {
+                    renderMarkdownToVisual(markdownEditor.value);
+                }
+
+                let bodyXml = '';
+                const children = Array.from(visualEditor.childNodes);
+
+                children.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const txt = node.nodeValue.trim();
+                        if (txt) {
+                            bodyXml += `<text:p text:style-name="Standard">${formatOdfText(txt)}</text:p>`;
+                        }
+                        return;
+                    }
+                    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+                    const tag = node.tagName.toUpperCase();
+
+                    if (tag === 'H1') {
+                        bodyXml += `<text:h text:style-name="Heading_20_1" text:outline-level="1">${serializeInlineNodesToOdf(node)}</text:h>`;
+                    } else if (tag === 'H2') {
+                        bodyXml += `<text:h text:style-name="Heading_20_2" text:outline-level="2">${serializeInlineNodesToOdf(node)}</text:h>`;
+                    } else if (tag === 'H3') {
+                        bodyXml += `<text:h text:style-name="Heading_20_3" text:outline-level="3">${serializeInlineNodesToOdf(node)}</text:h>`;
+                    } else if (tag === 'UL' || tag === 'OL') {
+                        Array.from(node.children).forEach(li => {
+                            if (!li.tagName || li.tagName.toUpperCase() !== 'LI') return;
+                            const tpl = getEffectiveTemplate(li);
+                            const contentTarget = li.querySelector('h1, h2, h3, p') || li;
+                            const innerXml = serializeInlineNodesToOdf(contentTarget);
+
+                            let listStyleName = tag === 'OL' ? 'L_Number' : 'L_Bullet';
+                            let paraXml = `<text:p text:style-name="P_List">${innerXml}</text:p>`;
+
+                            if (tpl === 'H1') {
+                                listStyleName = tag === 'OL' ? 'L_Number_H1' : 'L_Bullet_H1';
+                                paraXml = `<text:h text:style-name="Heading_20_1" text:outline-level="1">${innerXml}</text:h>`;
+                            } else if (tpl === 'H2') {
+                                listStyleName = tag === 'OL' ? 'L_Number_H2' : 'L_Bullet_H2';
+                                paraXml = `<text:h text:style-name="Heading_20_2" text:outline-level="2">${innerXml}</text:h>`;
+                            } else if (tpl === 'H3') {
+                                listStyleName = tag === 'OL' ? 'L_Number_H3' : 'L_Bullet_H3';
+                                paraXml = `<text:h text:style-name="Heading_20_3" text:outline-level="3">${innerXml}</text:h>`;
+                            }
+
+                            const continueAttr = tag === 'OL' ? ' text:continue-numbering="true"' : '';
+                            bodyXml += `<text:list text:style-name="${listStyleName}"${continueAttr}><text:list-item>${paraXml}</text:list-item></text:list>`;
+                        });
+                    } else if (tag === 'PRE') {
+                        const codeNode = node.querySelector('code') || node;
+                        const lang = node.getAttribute('data-lang') || 'CODE';
+                        const rawLines = codeNode.textContent.replace(/\n$/, '').split(/\r?\n/);
+                        bodyXml += `<text:p text:style-name="Code_Header">[${escapeXml(lang)}]</text:p>`;
+                        rawLines.forEach(line => {
+                            bodyXml += `<text:p text:style-name="Code_Block">${formatOdfText(line)}</text:p>`;
+                        });
+                    } else {
+                        const inner = serializeInlineNodesToOdf(node);
+                        bodyXml += `<text:p text:style-name="Standard">${inner}</text:p>`;
+                    }
+                });
+
+                if (!bodyXml) {
+                    bodyXml = `<text:p text:style-name="Standard"/>`;
+                }
+                return bodyXml;
+            }
+
+            // Reiner JS-ZIP-Packer (Store-Methode mit CRC32) als Offline-Fallback, falls CDN nicht erreichbar
+            function createStoredZipBlob(files) {
+                const crcTable = new Uint32Array(256);
+                for (let n = 0; n < 256; n++) {
+                    let c = n;
+                    for (let k = 0; k < 8; k++) {
+                        c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+                    }
+                    crcTable[n] = c >>> 0;
+                }
+                function crc32(bytes) {
+                    let crc = 0xffffffff;
+                    for (let i = 0; i < bytes.length; i++) {
+                        crc = crcTable[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+                    }
+                    return (crc ^ 0xffffffff) >>> 0;
+                }
+
+                const encoder = new TextEncoder();
+                const localParts = [];
+                const centralParts = [];
+                let offset = 0;
+
+                files.forEach(file => {
+                    const nameBytes = encoder.encode(file.name);
+                    const dataBytes = encoder.encode(file.content);
+                    const crc = crc32(dataBytes);
+                    const size = dataBytes.length;
+
+                    const localHeader = new Uint8Array(30 + nameBytes.length);
+                    const lv = new DataView(localHeader.buffer);
+                    lv.setUint32(0, 0x04034b50, true);
+                    lv.setUint16(4, 20, true);
+                    lv.setUint16(6, 0x0800, true); // UTF-8
+                    lv.setUint16(8, 0, true);      // Store (uncompressed)
+                    lv.setUint16(10, 0, true);
+                    lv.setUint16(12, 0x2100, true);
+                    lv.setUint32(14, crc, true);
+                    lv.setUint32(18, size, true);
+                    lv.setUint32(22, size, true);
+                    lv.setUint16(26, nameBytes.length, true);
+                    lv.setUint16(28, 0, true);
+                    localHeader.set(nameBytes, 30);
+
+                    const centralHeader = new Uint8Array(46 + nameBytes.length);
+                    const cv = new DataView(centralHeader.buffer);
+                    cv.setUint32(0, 0x02014b50, true);
+                    cv.setUint16(4, 20, true);
+                    cv.setUint16(6, 20, true);
+                    cv.setUint16(8, 0x0800, true);
+                    cv.setUint16(10, 0, true);
+                    cv.setUint16(12, 0, true);
+                    cv.setUint16(14, 0x2100, true);
+                    cv.setUint32(16, crc, true);
+                    cv.setUint32(20, size, true);
+                    cv.setUint32(24, size, true);
+                    cv.setUint16(28, nameBytes.length, true);
+                    cv.setUint16(30, 0, true);
+                    cv.setUint16(32, 0, true);
+                    cv.setUint16(34, 0, true);
+                    cv.setUint16(36, 0, true);
+                    cv.setUint32(38, 0, true);
+                    cv.setUint32(42, offset, true);
+                    centralHeader.set(nameBytes, 46);
+
+                    localParts.push(localHeader, dataBytes);
+                    centralParts.push(centralHeader);
+                    offset += localHeader.length + size;
+                });
+
+                const centralSize = centralParts.reduce((acc, part) => acc + part.length, 0);
+                const eocd = new Uint8Array(22);
+                const ev = new DataView(eocd.buffer);
+                ev.setUint32(0, 0x06054b50, true);
+                ev.setUint16(4, 0, true);
+                ev.setUint16(6, 0, true);
+                ev.setUint16(8, files.length, true);
+                ev.setUint16(10, files.length, true);
+                ev.setUint32(12, centralSize, true);
+                ev.setUint32(16, offset, true);
+                ev.setUint16(20, 0, true);
+
+                return new Blob([...localParts, ...centralParts, eocd], {
+                    type: 'application/vnd.oasis.opendocument.text'
+                });
+            }
+
+            // Erstellt ein valides LibreOffice Writer (.odt) Paket mit Noto Sans Formatvorlagen
+            async function generateOdtBlob() {
+                const mimetypeContent = 'application/vnd.oasis.opendocument.text';
+
+                const manifestXml = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">
+ <manifest:file-entry manifest:full-path="/" manifest:version="1.2" manifest:media-type="application/vnd.oasis.opendocument.text"/>
+ <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
+ <manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>
+ <manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/>
+</manifest:manifest>`;
+
+                const nowIso = new Date().toISOString();
+                const metaXml = `<?xml version="1.0" encoding="UTF-8"?>
+<office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" office:version="1.2">
+ <office:meta>
+  <meta:generator>NotoWrite Studio 3.5</meta:generator>
+  <dc:title>${escapeXml(docFilename.value || 'Dokument')}</dc:title>
+  <meta:creation-date>${nowIso}</meta:creation-date>
+  <dc:date>${nowIso}</dc:date>
+ </office:meta>
+</office:document-meta>`;
+
+                const stylesXml = `<?xml version="1.0" encoding="UTF-8"?>
+<office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+ xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
+ office:version="1.2">
+ <office:font-face-decls>
+  <style:font-face style:name="Noto Sans" svg:font-family="'Noto Sans'" style:font-family-generic="swiss" style:font-pitch="variable"/>
+  <style:font-face style:name="Noto Sans Mono" svg:font-family="'Noto Sans Mono'" style:font-family-generic="modern" style:font-pitch="fixed"/>
+ </office:font-face-decls>
+ <office:styles>
+  <style:default-style style:family="paragraph">
+   <style:paragraph-properties fo:hyphenation-ladder-count="no-limit" style:text-autospace="ideograph-alpha" style:punctuation-wrap="hanging" style:line-break="strict"/>
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="11pt" fo:language="de" fo:country="DE"/>
+  </style:default-style>
+  <style:style style:name="Standard" style:family="paragraph" style:class="text">
+   <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0.28cm" fo:line-height="120%"/>
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="11pt" fo:color="#1e293b"/>
+  </style:style>
+  <style:style style:name="Heading_20_1" style:display-name="Heading 1" style:family="paragraph" style:parent-style-name="Standard" style:next-style-name="Standard" style:default-outline-level="1" style:class="text">
+   <style:paragraph-properties fo:margin-top="0.5cm" fo:margin-bottom="0.25cm" fo:keep-with-next="always" fo:border-bottom="0.75pt solid #cbd5e1" fo:padding-bottom="0.08cm"/>
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="18pt" fo:font-weight="bold" fo:color="#0f172a"/>
+  </style:style>
+  <style:style style:name="Heading_20_2" style:display-name="Heading 2" style:family="paragraph" style:parent-style-name="Standard" style:next-style-name="Standard" style:default-outline-level="2" style:class="text">
+   <style:paragraph-properties fo:margin-top="0.4cm" fo:margin-bottom="0.2cm" fo:keep-with-next="always"/>
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="14pt" fo:font-weight="bold" fo:color="#1e293b"/>
+  </style:style>
+  <style:style style:name="Heading_20_3" style:display-name="Heading 3" style:family="paragraph" style:parent-style-name="Standard" style:next-style-name="Standard" style:default-outline-level="3" style:class="text">
+   <style:paragraph-properties fo:margin-top="0.3cm" fo:margin-bottom="0.15cm" fo:keep-with-next="always"/>
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="12pt" fo:font-weight="bold" fo:color="#334155"/>
+  </style:style>
+  <style:style style:name="P_List" style:display-name="Listenabsatz" style:family="paragraph" style:parent-style-name="Standard" style:class="list">
+   <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0.12cm" fo:line-height="115%"/>
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="11pt"/>
+  </style:style>
+  <style:style style:name="Code_Header" style:display-name="Code Kopfzeile" style:family="paragraph" style:parent-style-name="Standard">
+   <style:paragraph-properties fo:margin-top="0.25cm" fo:margin-bottom="0cm" fo:background-color="#1e293b" fo:padding-left="0.25cm" fo:padding-right="0.25cm" fo:padding-top="0.1cm" fo:padding-bottom="0.05cm" fo:keep-with-next="always"/>
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="8.5pt" fo:font-weight="bold" fo:color="#94a3b8"/>
+  </style:style>
+  <style:style style:name="Code_Block" style:display-name="Code Block" style:family="paragraph" style:parent-style-name="Standard">
+   <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0cm" fo:background-color="#282c34" fo:padding-left="0.25cm" fo:padding-right="0.25cm" fo:padding-top="0.04cm" fo:padding-bottom="0.04cm"/>
+   <style:text-properties style:font-name="Noto Sans Mono" fo:font-size="9.5pt" fo:color="#abb2bf"/>
+  </style:style>
+  <text:outline-style style:name="Outline">
+   <text:outline-level-style text:level="1" style:num-format=""/>
+   <text:outline-level-style text:level="2" style:num-format=""/>
+   <text:outline-level-style text:level="3" style:num-format=""/>
+  </text:outline-style>
+ </office:styles>
+ <office:automatic-styles>
+  <style:page-layout style:name="pm1">
+   <style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" style:num-format="1" style:print-orientation="portrait" fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2.2cm" fo:margin-right="2.2cm"/>
+  </style:page-layout>
+ </office:automatic-styles>
+ <office:master-styles>
+  <style:master-page style:name="Standard" style:page-layout-name="pm1"/>
+ </office:master-styles>
+</office:document-styles>`;
+
+                const bodyXml = buildOdtBodyXml();
+
+                const contentXml = `<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+ xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
+ office:version="1.2">
+ <office:font-face-decls>
+  <style:font-face style:name="Noto Sans" svg:font-family="'Noto Sans'" style:font-family-generic="swiss" style:font-pitch="variable"/>
+  <style:font-face style:name="Noto Sans Mono" svg:font-family="'Noto Sans Mono'" style:font-family-generic="modern" style:font-pitch="fixed"/>
+ </office:font-face-decls>
+ <office:automatic-styles>
+  <style:style style:name="T_Bold" style:family="text">
+   <style:text-properties fo:font-weight="bold" style:font-weight-asian="bold" style:font-weight-complex="bold"/>
+  </style:style>
+  <style:style style:name="T_Italic" style:family="text">
+   <style:text-properties fo:font-style="italic" style:font-style-asian="italic" style:font-style-complex="italic"/>
+  </style:style>
+  <style:style style:name="T_BoldItalic" style:family="text">
+   <style:text-properties fo:font-weight="bold" fo:font-style="italic" style:font-weight-asian="bold" style:font-style-asian="italic"/>
+  </style:style>
+  <style:style style:name="T_InlineCode" style:family="text">
+   <style:text-properties style:font-name="Noto Sans Mono" fo:font-size="9.5pt" fo:color="#e11d48" fo:background-color="#f1f5f9"/>
+  </style:style>
+  <text:list-style style:name="L_Bullet">
+   <text:list-level-style-bullet text:level="1" text:bullet-char="•">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.25cm" fo:text-indent="-0.6cm" fo:margin-left="1.25cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-bullet>
+  </text:list-style>
+  <style:style style:name="T_Num_H1" style:family="text">
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="18pt" fo:font-weight="bold" fo:color="#0f172a"/>
+  </style:style>
+  <style:style style:name="T_Num_H2" style:family="text">
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="14pt" fo:font-weight="bold" fo:color="#1e293b"/>
+  </style:style>
+  <style:style style:name="T_Num_H3" style:family="text">
+   <style:text-properties style:font-name="Noto Sans" fo:font-size="12pt" fo:font-weight="bold" fo:color="#334155"/>
+  </style:style>
+  <text:list-style style:name="L_Number">
+   <text:list-level-style-number text:level="1" style:num-suffix="." style:num-format="1">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.25cm" fo:text-indent="-0.6cm" fo:margin-left="1.25cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-number>
+  </text:list-style>
+  <text:list-style style:name="L_Number_H1">
+   <text:list-level-style-number text:level="1" text:style-name="T_Num_H1" style:num-suffix="." style:num-format="1">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.4cm" fo:text-indent="-0.8cm" fo:margin-left="1.4cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-number>
+  </text:list-style>
+  <text:list-style style:name="L_Number_H2">
+   <text:list-level-style-number text:level="1" text:style-name="T_Num_H2" style:num-suffix="." style:num-format="1">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.3cm" fo:text-indent="-0.7cm" fo:margin-left="1.3cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-number>
+  </text:list-style>
+  <text:list-style style:name="L_Number_H3">
+   <text:list-level-style-number text:level="1" text:style-name="T_Num_H3" style:num-suffix="." style:num-format="1">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.25cm" fo:text-indent="-0.6cm" fo:margin-left="1.25cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-number>
+  </text:list-style>
+  <text:list-style style:name="L_Bullet_H1">
+   <text:list-level-style-bullet text:level="1" text:style-name="T_Num_H1" text:bullet-char="•">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.4cm" fo:text-indent="-0.8cm" fo:margin-left="1.4cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-bullet>
+  </text:list-style>
+  <text:list-style style:name="L_Bullet_H2">
+   <text:list-level-style-bullet text:level="1" text:style-name="T_Num_H2" text:bullet-char="•">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.3cm" fo:text-indent="-0.7cm" fo:margin-left="1.3cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-bullet>
+  </text:list-style>
+  <text:list-style style:name="L_Bullet_H3">
+   <text:list-level-style-bullet text:level="1" text:style-name="T_Num_H3" text:bullet-char="•">
+    <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+     <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.25cm" fo:text-indent="-0.6cm" fo:margin-left="1.25cm"/>
+    </style:list-level-properties>
+   </text:list-level-style-bullet>
+  </text:list-style>
+ </office:automatic-styles>
+ <office:body>
+  <office:text>
+   ${bodyXml}
+  </office:text>
+ </office:body>
+</office:document-content>`;
+
+                if (typeof JSZip !== 'undefined') {
+                    const zip = new JSZip();
+                    // mimetype muss unkomprimiert (STORE) als erster Eintrag im ODT-Archiv liegen
+                    zip.file('mimetype', mimetypeContent, { compression: 'STORE' });
+                    zip.file('META-INF/manifest.xml', manifestXml);
+                    zip.file('meta.xml', metaXml);
+                    zip.file('styles.xml', stylesXml);
+                    zip.file('content.xml', contentXml);
+                    return await zip.generateAsync({
+                        type: 'blob',
+                        mimeType: 'application/vnd.oasis.opendocument.text',
+                        compression: 'DEFLATE'
+                    });
+                }
+
+                // Offline-Fallback ohne JSZip
+                return createStoredZipBlob([
+                    { name: 'mimetype', content: mimetypeContent },
+                    { name: 'META-INF/manifest.xml', content: manifestXml },
+                    { name: 'meta.xml', content: metaXml },
+                    { name: 'styles.xml', content: stylesXml },
+                    { name: 'content.xml', content: contentXml }
+                ]);
+            }
+
+            async function saveDocumentAs(extension) {
+                syncVisualToMarkdown();
+                const cleanName = (docFilename.value.trim() || 'Dokument').replace(/\.(md|txt|odt)$/i, '');
+                const fullFilename = `${cleanName}.${extension}`;
+
+                let blob = null;
+                let mimeType = 'text/plain;charset=utf-8';
+                let fileDescription = 'Textdatei (.txt)';
+
+                if (extension === 'odt') {
+                    mimeType = 'application/vnd.oasis.opendocument.text';
+                    fileDescription = 'LibreOffice Writer Dokument (.odt)';
+                    blob = await generateOdtBlob();
+                } else if (extension === 'md') {
+                    mimeType = 'text/markdown;charset=utf-8';
+                    fileDescription = 'Markdown (.md)';
+                    blob = new Blob([markdownEditor.value], { type: mimeType });
+                } else {
+                    blob = new Blob([visualEditor.innerText], { type: mimeType });
+                }
+
+                if (window.showSaveFilePicker) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: fullFilename,
+                            types: [{
+                                description: fileDescription,
+                                accept: { [mimeType.split(';')[0]]: [`.${extension}`] }
+                            }]
+                        });
+                        const writable = await handle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        showToast(`Als "${handle.name}" gespeichert`);
+                        return;
+                    } catch (err) {
+                        if (err.name === 'AbortError') return;
+                    }
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fullFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`"${fullFilename}" gespeichert`);
+            }
+
+            document.getElementById('btn-save-md').addEventListener('click', () => saveDocumentAs('md'));
+            document.getElementById('btn-save-txt').addEventListener('click', () => saveDocumentAs('txt'));
+            document.getElementById('btn-save-odt').addEventListener('click', () => saveDocumentAs('odt'));
+
+            document.getElementById('btn-new').addEventListener('click', () => {
+                docFilename.value = 'Neues_Dokument';
+                visualEditor.innerHTML = '<h1>Neues Dokument</h1><p>Beginne hier mit der Textverarbeitung in <strong>Noto Sans</strong>...</p>';
+                syncVisualToMarkdown();
+                updateStats();
+                visualEditor.focus();
+                showToast('Neues Dokument erstellt');
+            });
+
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropOverlay.classList.remove('hidden');
+                dropOverlay.classList.add('flex');
+            });
+
+            dropOverlay.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropOverlay.classList.add('hidden');
+                dropOverlay.classList.remove('flex');
+            });
+
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropOverlay.classList.add('hidden');
+                dropOverlay.classList.remove('flex');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    loadFileIntoEditor(e.dataTransfer.files[0]);
+                }
+            });
+
+            // =========================================================================
+            // 7. ANSICHTSMODI (EDITOR, SPLIT-SCREEN, MARKDOWN) & DARK MODE
+            // =========================================================================
+            const viewButtons = document.querySelectorAll('.view-btn');
+            viewButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const mode = btn.getAttribute('data-view');
+                    currentViewMode = mode;
+                    viewButtons.forEach(b => {
+                        b.classList.remove('bg-white', 'dark:bg-slate-700', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+                        b.classList.add('text-slate-600', 'dark:text-slate-400');
+                    });
+                    btn.classList.add('bg-white', 'dark:bg-slate-700', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+                    btn.classList.remove('text-slate-600', 'dark:text-slate-400');
+
+                    if (mode === 'visual') {
+                        visualPane.classList.remove('hidden');
+                        markdownPane.classList.add('hidden');
+                        markdownPane.classList.remove('flex');
+                    } else if (mode === 'split') {
+                        visualPane.classList.remove('hidden');
+                        markdownPane.classList.remove('hidden');
+                        markdownPane.classList.add('flex');
+                        syncVisualToMarkdown();
+                    } else if (mode === 'markdown') {
+                        visualPane.classList.add('hidden');
+                        markdownPane.classList.remove('hidden');
+                        markdownPane.classList.add('flex');
+                        syncVisualToMarkdown();
+                    }
+                });
+            });
+
+            // =========================================================================
+            // 7b. NAVIGATOR FÜR "ÜBERSCHRIFT 1" (WIE IN LIBREOFFICE)
+            // =========================================================================
+            function openNavigator() {
+                navigatorList.innerHTML = '';
+
+                // Falls wir im reinen Markdown-Modus sind, erst synchronisieren
+                if (currentViewMode === 'markdown') {
+                    renderMarkdownToVisual(markdownEditor.value);
+                }
+
+                const h1Elements = Array.from(visualEditor.querySelectorAll('h1'));
+                navigatorCount.textContent = h1Elements.length;
+
+                if (h1Elements.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'py-6 px-3 text-center text-slate-400 dark:text-slate-500 text-xs';
+                    emptyMsg.textContent = 'Keine „Überschrift 1“ im Dokument gefunden.';
+                    navigatorList.appendChild(emptyMsg);
+                } else {
+                    h1Elements.forEach((h1, index) => {
+                        const titleText = h1.textContent.trim() || `(Leere Überschrift ${index + 1})`;
+                        const itemBtn = document.createElement('button');
+                        itemBtn.type = 'button';
+                        itemBtn.className = 'w-full text-left px-2.5 py-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/60 active:bg-teal-100 text-slate-700 dark:text-slate-200 flex items-center gap-2 transition group';
+                        itemBtn.innerHTML = `
+                            <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-teal-600 dark:text-teal-400 group-hover:bg-teal-600 group-hover:text-white transition shrink-0">H1</span>
+                            <span class="font-medium truncate flex-1">${escapeHtml(titleText)}</span>
+                        `;
+
+                        itemBtn.addEventListener('click', () => {
+                            closeNavigator();
+                            jumpToHeading(h1, index, titleText);
+                        });
+
+                        navigatorList.appendChild(itemBtn);
+                    });
+                }
+
+                navigatorModal.classList.remove('hidden');
+                navigatorModal.classList.add('flex');
+            }
+
+            function closeNavigator() {
+                navigatorModal.classList.add('hidden');
+                navigatorModal.classList.remove('flex');
+            }
+
+            function jumpToHeading(h1Element, h1Index, titleText) {
+                // Falls der Nutzer in der reinen Markdown-Ansicht ist, dort zur entsprechenden # Zeile springen
+                if (currentViewMode === 'markdown') {
+                    const mdText = markdownEditor.value;
+                    const lines = mdText.split('\n');
+                    let currentH1Count = 0;
+                    let charPos = 0;
+
+                    for (let i = 0; i < lines.length; i++) {
+                        if (/^#\s+/.test(lines[i])) {
+                            if (currentH1Count === h1Index) {
+                                markdownEditor.focus();
+                                markdownEditor.setSelectionRange(charPos, charPos + lines[i].length);
+                                // Zum Bereich im Textarea scrollen
+                                const lineHeight = 20;
+                                markdownEditor.scrollTop = Math.max(0, i * lineHeight - 60);
+                                showToast(`Zu „${titleText}“ gesprungen`);
+                                return;
+                            }
+                            currentH1Count++;
+                        }
+                        charPos += lines[i].length + 1;
+                    }
+                }
+
+                // Im visuellen Editor (oder Split-Modus): Zu H1 scrollen und Cursor direkt in die Überschrift setzen
+                visualEditor.focus();
+                const range = document.createRange();
+                range.selectNodeContents(h1Element);
+                range.collapse(false); // Cursor ans Ende der Überschrift 1 setzen
+
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+
+                h1Element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Kurze optische Hervorhebung der angesprungenen Überschrift
+                const origTransition = h1Element.style.transition;
+                const origBg = h1Element.style.backgroundColor;
+                h1Element.style.transition = 'background-color 0.4s ease';
+                h1Element.style.backgroundColor = 'rgba(20, 184, 166, 0.18)';
+                setTimeout(() => {
+                    h1Element.style.backgroundColor = origBg;
+                    setTimeout(() => { h1Element.style.transition = origTransition; }, 400);
+                }, 900);
+
+                updateActiveFormatState();
+                showToast(`Zu „${titleText}“ gesprungen`);
+            }
+
+            btnNavigator.addEventListener('click', openNavigator);
+            btnCloseNavigator.addEventListener('click', closeNavigator);
+            navigatorModal.addEventListener('click', (e) => {
+                if (e.target === navigatorModal) closeNavigator();
+            });
+
+            const btnTheme = document.getElementById('btn-theme');
+            const iconSun = document.getElementById('icon-sun');
+            const iconMoon = document.getElementById('icon-moon');
+
+            btnTheme.addEventListener('click', () => {
+                const htmlEl = document.documentElement;
+                htmlEl.classList.toggle('dark');
+                const isDark = htmlEl.classList.contains('dark');
+                iconSun.classList.toggle('hidden', !isDark);
+                iconMoon.classList.toggle('hidden', isDark);
+            });
+
+            // =========================================================================
+            // 8. STATISTIKEN & TOAST-MELDUNGEN
+            // =========================================================================
+            function updateStats() {
+                const text = visualEditor.innerText || '';
+                const trimmed = text.trim();
+                const words = trimmed ? trimmed.split(/\s+/).length : 0;
+                const chars = text.replace(/\n/g, '').length;
+                const lines = trimmed ? text.split(/\r?\n/).length : 0;
+                const codeBlocks = visualEditor.querySelectorAll('pre').length;
+
+                statWords.textContent = `${words} W`;
+                statChars.textContent = `${chars} Z`;
+                statLines.textContent = `${lines} ${lines === 1 ? 'Zeile' : 'Zeilen'}`;
+                statusCodeCount.textContent = `Code-Blöcke: ${codeBlocks}`;
+            }
+
+            let toastTimeout = null;
+            function showToast(message) {
+                const toast = document.getElementById('toast');
+                const toastMsg = document.getElementById('toast-msg');
+                toastMsg.textContent = message;
+                toast.classList.remove('translate-y-16', 'opacity-0');
+                if (toastTimeout) clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => {
+                    toast.classList.add('translate-y-16', 'opacity-0');
+                }, 2600);
+            }
+
+            // =========================================================================
+            // 9. INITIALES BEISPIELDOKUMENT LADEN
+            // =========================================================================
+            const initialMarkdown = `# 1. Willkommen in NotoWrite Studio
+
+Dies ist dein für **Android-Smartphones** und Desktop optimiertes Textverarbeitungs-Programm mit der Schriftart **Noto Sans**.
+
+## Kompakte Formatierungsvorlagen
+
+Über die schlanke Werkzeugleiste oben erreichst du alle Vorlagen sofort per Fingertipp:
+
+- **¶ Std**: Normaler Fließtext-Absatz in *Noto Sans*
+- **H1 / H2 / H3**: Überschriften-Vorlagen
+- **1. Zahlen**: Geordnete Liste mit Zahlen (1., 2., 3.)
+- **Liste**: Ungeordnete Aufzählungsliste
+- **Navigator**: Kompaktes Inhaltsverzeichnis aller *Überschrift 1*-Einträge
+
+### Beispiel für eine geordnete Liste:
+
+1. Dokument im visuellen Editor oder in Markdown verfassen
+2. Formatierungen und Code-Blöcke beliebig kombinieren
+3. Direkt als **.ODT**, **.MD** oder **.TXT** speichern und wieder öffnen
+
+# 2. Automatische Code-Erkennung
+
+Programmier-Code wird automatisch erkannt und farblich hervorgehoben (**Syntax-Highlighting**):
+
+\`\`\`javascript
+// Beispiel: JavaScript-Code mit Farb-Darstellung
+class DokumentenManager {
+    constructor(dateiname) {
+        this.dateiname = dateiname;
+        this.schriftart = "Noto Sans";
+    }
+
+    speichern(format = "md") {
+        console.log(\`Speichere "\${this.dateiname}.\${format}"...\`);
+        return true;
+    }
+}
+\`\`\`
+
+# 3. Schnelle Navigation im Dokument
+
+Klicke oben in der Formatierungsleiste auf **Navigator**, um direkt zwischen allen Hauptkapiteln (*Überschrift 1*) hin- und herzuspringen.
+`;
+
+            docFilename.value = 'Willkommen_NotoWrite';
+            markdownEditor.value = initialMarkdown;
+            renderMarkdownToVisual(initialMarkdown);
+            updateActiveFormatState();
+        });
+    </script>
+</body>
+</html>
