@@ -32,8 +32,12 @@
 
 ## Versionen ##
 
+### Version 3.9 ###
+- Im Rohdaten-Modus wurden im Split- und Vollansicht-Modus Zeilennummern eingefügt. Diese sind an den Text verankert.
+- Im Rohdaten-Modus wird die aktuelle Zeile farblich markiert.
+
 ### Version 3.5 ###
-- Kompatibilität der ODT-Dateien mit Libre Office (Fehler in styles.xml) behoben.
+- Kompatibilität der ODT-Dateien mit Libre Office (Fehler in styles.xml behoben)
 - geordnete Liste mit Zahlen hinzugefügt
 
 ### Version 3.2 ###
